@@ -49,7 +49,6 @@ The Cryptdatum format is a powerful, flexible universal data format for storing 
 
 Cryptdatum can be used to store and transmit data fast. The format includes a number of features to ensure the security and integrity of the data, including built-in checksumming, optional encryption, compression, signing, and metadatum API's.
 
-
 ## Cryptdatum Data Format Specification
 
 The key words “MUST”, “MUST NOT”, “REQUIRED”, “SHALL”, “SHALL NOT”, “SHOULD”, “SHOULD NOT”, “RECOMMENDED”, “MAY”, and “OPTIONAL” in this document are to be interpreted as described in <a href="https://www.rfc-editor.org/rfc/rfc2119" title="Key words for use in RFCs to Indicate Requirement Levels">link-RFC-2119</a>.
@@ -94,13 +93,15 @@ The Cryptdatum header is a 64-byte block of data that contains metadata about th
   | <cryptdatum header> <signature> <payload>
 ```
 
-- **Metadatum type** 4-byte value which indentifies metadat format used if any. When used then flag bits (*1024*) MUST be also set to indicate that Metadata is in used. When used format would be in follwoing order.
+- **Metadata type** 4-byte value which indentifies metadata format used if any. When used then flag bits (*1024*) MUST be also set to indicate that Metadata is in used. When used format would be in follwoing order.
 
 ```
 <valid cryptdatum> ::= <cryptdatum header> <cryptdatum metadata>
   | <cryptdatum header> <cryptdatum metadata> <signature> <payload>
   | <cryptdatum header> <cryptdatum metadata> <payload>
 ```
+
+- **Metadata size** field MUST be set when Metadata type is set to definee the size of the metadata after header.
 
 - **The delimiter** is an 2-byte value `0xA6, 0xE5` that marks the end of the header. It helps to prevent the header from being misinterpreted as part of the data payload. It is also used to ensure that the header is properly parsed by the decoder.
 
@@ -116,7 +117,7 @@ The Cryptdatum header consists of the following fields:
 | Flags                 | unsigned integer (uint64) | 8            | enabled features |
 | Timestamp             | unsigned integer (uint64) | 8            | unix timestamp in nanoseconds UTC |
 | OPC                   | unsigned integer (uint32) | 4            | Operation Counter. |
-| ChunkSize             | unsigned integer (uint32) | 2            | Operation Counter. |
+| ChunkSize             | unsigned integer (uint16) | 2            | Chunk size if data is chunked. |
 | Network ID            | unsigned integer (uint32) | 4            | Network ID |
 | Size                  | unsigned integer (uint64) | 8            | Total size of the data |
 | Checksum              | unsigned integer (uint64) | 8            | CRC64 checksum |
