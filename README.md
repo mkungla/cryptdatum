@@ -40,7 +40,7 @@
 
 ## Introduction
 
-The Cryptdatum format is a powerful, flexible universal data format for storing data in a long-term compatible way across domains and with any encryption and compression algorithms. It consists of a 64-byte header that stores information about the data payload, followed by the data payload or 64-byte header followed by the metadata, signature, and then data payload. Cryptdatum is designed to be flexible enough to accommodate a variety of use cases, while still maintaining simplicity. All features used in the data can be determined from different header flags. e.g.
+The Cryptdatum format is a powerful, flexible universal data format for storing data in a long-term compatible way across domains and with any encryption and compression algorithms. It consists of a 64-byte header that stores information about the data payload, followed by the data payload or 64-byte header followed by the metadata, signature, and then data payload. Cryptdatum is designed to be flexible enough to accommodate a variety of use cases, while still maintaining simplicity. All features used in the data can be determined from different header flags. e.g. some of the following;
 
 - If Metadata type flag is set then the value can be used by decoder to determine how to parse metadata from the beginning of the payload.
 - If ChunkSize is greater than 0 then data can be streamed and processed in chunks
@@ -48,6 +48,8 @@ The Cryptdatum format is a powerful, flexible universal data format for storing 
 - If Encryption flag is set then it represent Encryption Algorithm used so that decoder can decide how to decrypt the data.
 
 Cryptdatum can be used to store and transmit data fast. The format includes a number of features to ensure the security and integrity of the data, including built-in checksumming, optional encryption, compression, signing, and metadatum API's.
+
+Cryptatum is an ideal data format for both centralized and decentralized environments, as it is flexible enough to be used for simple, common local data container or as a means of data storage and transfer in distributed systems and even blockchain technologies. The 64 byte header and metadata provide an API on steroids, and it's even suitable for use as a universal metaverse data container. Imagine being able to store and share all your virtual world assets and experiences in one, secure format accross all blockchain networks which have adopted this specification. The possibilities are endless.
 
 ## Cryptdatum Data Format Specification
 
@@ -214,7 +216,7 @@ When payload is encrypted and signed then signature data is omitted when calcula
 Important to not that checksum is calculated over uncompressed payload data, this allows to change compression algorithm even after data is signed and checksummed.
 
 The design decision to encrypt data before compression is because encryption is more effective on random data, and compression can make the data more predictable, reducing the security of the encryption.
-That said, compressing the data first and then encrypting it can still provide a reasonable level of security and it may be more efficient in some cases. Cryptdatum by design allows such use case therefore providing already compressed data to Cryptdatum encoder and only using it's built in encryption mechanism is valid use. Such use compression flag bit MUST be omitted so that encoders/decoders would not load compression utilities and attempt to decompress data before decrypting. Compression Algorithm header field can still be used to set compression algorithm while implementations SHOULD take into account security implications of such approach.
+That said, compressing the data first and then encrypting it can still provide a reasonable level of security and it may be more efficient in some cases. Cryptdatum by design allows such use case therefore providing already compressed data to Cryptdatum encoder and only using it's built in encryption mechanism is valid use. Such use compression flag bit MUST be omitted so that encoders/decoders would not load compression utilities and attempt to decompress data before decrypting. Compression Algorithm header field can still be used to set compression algorithm while implementations SHOULD take into account security implications of such approach. Additionally, if the data is being sent over a network and bandwidth or speed is a concern due data size, distance between peers or transport medium capabilities, it may be more efficient to compress the data first to reduce the amount of data that needs to be transmitted.
 
 ### Compression
 
