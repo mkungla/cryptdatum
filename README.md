@@ -213,6 +213,9 @@ When payload is encrypted and signed then signature data is omitted when calcula
 
 Important to not that checksum is calculated over uncompressed payload data, this allows to change compression algorithm even after data is signed and checksummed.
 
+The design decision to encrypt data before compression is because encryption is more effective on random data, and compression can make the data more predictable, reducing the security of the encryption.
+That said, compressing the data first and then encrypting it can still provide a reasonable level of security and it may be more efficient in some cases. Cryptdatum by design allows such use case therefore providing already compressed data to Cryptdatum encoder and only using it's built in encryption mechanism is valid use. Such use compression flag bit MUST be omitted so that encoders/decoders would not load compression utilities and attempt to decompress data before decrypting. Compression Algorithm header field can still be used to set compression algorithm while implementations SHOULD take into account security implications of such approach.
+
 ### Compression
 
 *TBD*
