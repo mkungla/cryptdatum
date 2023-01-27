@@ -153,11 +153,13 @@ All multi-byte values in the Cryptdatum header are stored in little endian byte 
 
 #### Constants
 
- - **Version** for implementation of current version of Cryptdatum format should set that value to 1 as unsigned integer (uint16)   
- - **Magic Number** is fixed byte array `0xA7, 0xF6, 0xE5, 0xD4`
+- **Version** for implementation of current version of Cryptdatum format should set that value to 1 as unsigned integer (uint16)   
+- **Magic Number** is fixed byte array `0xA7, 0xF6, 0xE5, 0xD4`
     if the Magic Number field is not recognized and matched at the beginning of the header, the header MUST be considered invalid.
- - **Delimiter** `0xA6, 0xE5`
+- **Delimiter** `0xA6, 0xE5`
     if the Delimiter field is not recognized and matched at the end (last 2 bytes) of the header, the header MUST be considered invalid.
+- **MagicDate** `1652155382000000001` this the minimum possible value for Timestamp header field.
+
 
 #### Enums
 
