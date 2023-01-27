@@ -34,6 +34,7 @@
   - [File extension](#file-extension)
   - [Error Handling](#error-handling)
 - [Examples and Use Cases](#examples-and-use-cases)
+- [Libraries](#libraries)
 - [Implementation Benchmarks](#implementation-benchmarks)
 
 
@@ -242,6 +243,13 @@ A Cryptdatum file consists of a 64-byte header followed by rest of the data.
 ## Examples and Use Cases
 
 *TBD*
+
+## Libraries
+
+- Go *WIP*
+- C *WIP*
+- C++ *WIP*
+- Rust *WIP*
 
 ## Implementation Benchmarks
 
