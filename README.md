@@ -178,7 +178,7 @@ All multi-byte values in the Cryptdatum header are stored in little endian byte 
   - **DatumSigned (256)** Indicates that datum has been signed, That case Signature Type header field can be used to look up the signature type to decide how the signature can be verified. When Signature Size field is also set to value greater than 0 it will indicate that signature is included in datum and signature size length in bytes so that it can be extracted from between header and actual payload. 
   - **DatumChunked (512)** Indicates that datum payload chunked and streamable and can be decoded  from stream reasource when reciever has appropiate support for such decoder instead of processing all the payload at once. ChunkSize header field MUST indicate the size of the chunk when this bit is set.
   - **DatumMetadata (1024)** Arbitrary metadata, Cryptdatum does not care about the value of this field and allows higher level libraries to use it as they wich, however it is part of the checksumed data. Metadata size header field can be looked up to get size of the metadata.
-  - **DatumCompromised (2048)** Indicates that source providing the datum has readons to belive that integrity of Cryptdatums payload can not be verified, e.g failed checksum check, invalid signature etc. Receiver should be extremely cautious when processing such Cryptdata payload. Meaning of this field very vague and interpretation may vary based on individual use-cases. Source providing such Cryptum may provide additional context why Datum Compromised flag has been set but that behaviour is not part of this specification and implementations may create custom behaviour around that Flag.
+  - **DatumCompromised (2048)** Indicates that source providing the datum has readons to belive that integrity of Cryptdatums payload can not be verified, e.g failed checksum check, invalid signature etc. Receiver should be extremely cautious when processing such Cryptdata payload. Meaning of this field very vague and interpretation may vary based on individual use-cases. Source providing such Cryptum may provide additional context why Datum Compromised flag has been set but that behaviour is not part of this specification and implementations may create custom behaviour around that Flag. Header parsers MUST indicate that header is invalid when this flag bit is set. That would force client to take extra steps if it decides to still read the data. The way would be unset DatumCompromised bit and set DatumDraft bit.
 	
 
 ### Checksum
@@ -211,7 +211,7 @@ The checksum can be used to detect errors in the transmission of the data, as we
 
 When payload is encrypted and signed then signature data is omitted when calculating checksum. Header field Signature Size helps with to quickly idendify signature bytes and find a beginning of the payload.
 
-Important to not that checksum is calculated over uncompressed payload data, this allows to change compression algorithm even after data is signed.
+Important to not that checksum is calculated over uncompressed payload data, this allows to change compression algorithm even after data is signed and checksummed.
 
 ### Compression
 
