@@ -13,14 +13,15 @@ import (
 )
 
 var (
-	magic = [8]byte{0xA7, 0xF6, 0xE5, 0xD4, 0xC3, 0xB2, 0xA1, 0xE1}
+	magic = [4]byte{0xA7, 0xF6, 0xE5, 0xD4}
 
-	delimiter = [8]byte{0xC8, 0xB7, 0xA6, 0xE5, 0xD4, 0xC3, 0xB2, 0xF1}
+	delimiter = [2]byte{0xA6, 0xE5}
 )
 
 func main() {
 	var generators = []func() (string, error){
-		createTestHasValidHeader,
+		createValidMinimalHeader,
+		createValidFullFeaturedHeader,
 	}
 	for _, gen := range generators {
 		if name, err := gen(); err != nil {
@@ -30,65 +31,83 @@ func main() {
 	}
 }
 
-// specV1createValidForTesting outputs empty cdt for testing
-// header field alignment.
-func createTestHasValidHeader() (string, error) {
-	const name = "has-aligned-header.cdt"
-	var header [80]byte
+// createValidMinimalHeader craetes valid header which is valid
+func createValidMinimalHeader() (string, error) {
+	const name = "valid-minimal-header.cdt"
+	var header [64]byte
 
 	// Set Magic
-	copy(header[0:8], magic[:])
-
+	copy(header[0:4], magic[:])
 	// Set version, must be 1
-	binary.LittleEndian.PutUint16(header[8:10], 1)
+	binary.LittleEndian.PutUint16(header[4:6], 1)
+	// DatumEmpty
+	binary.LittleEndian.PutUint64(header[6:14], 4)
 
 	ts := time.Date(2022, 5, 10, 4, 3, 2, 1, time.UTC).UnixNano()
+	binary.LittleEndian.PutUint64(header[14:22], uint64(ts))
 
-	// Set flags
-	flagDatumEmpty := 4
-	flagDatumChecksum := 8
-	flagDatumOPC := 16
-	flagDatumCompressed := 32
-	flagDatumEncrypted := 64
-	flagDatumExtractable := 128
-	flagDatumSigned := 256
-	flagDatumCustom := 1024
+	// Delimiter
+	copy(header[62:64], delimiter[:])
 
-	flag := uint64(flagDatumEmpty | flagDatumChecksum | flagDatumOPC | flagDatumEncrypted | flagDatumCompressed | flagDatumSigned | flagDatumCustom | flagDatumExtractable)
-	binary.LittleEndian.PutUint64(header[10:18], flag)
+	return name, os.WriteFile(name, header[:], 0640)
+}
 
-	// Set unix time in nanoseconds
-	binary.LittleEndian.PutUint64(header[18:26], uint64(ts))
+func createValidFullFeaturedHeader() (string, error) {
+	const name = "valid-full-featured-header-with-empty-chunk.cdt"
+	var header [64]byte
+	// Set Magic
+	copy(header[0:4], magic[:])
+	// Set version, must be 1
+	binary.LittleEndian.PutUint16(header[4:6], 1)
+	// DatumChecksum 8
+	// DatumOPC 16
+	// DatumCompressed 32
+	// DatumEncrypted 64
+	// DatumSigned 256
+	// DatumChunked 512
+	// DatumMetadata 1024
+	// DatumNetwork 8192
+	binary.LittleEndian.PutUint64(header[6:14], 8|16|32|64|256|512|1024|8192)
 
-	// Op counter
-	binary.LittleEndian.PutUint32(header[26:30], 2)
+	// Timestamp is Unix timestamp in nanoseconds spec v1 min date.
+	ts := time.Date(2022, 5, 10, 4, 3, 2, 1, time.UTC).UnixNano()
 
-	// Checksum
-	copy(header[30:38], []byte{'c', 'h', 'e', 'c', 'k', 's', 'u', 'm'})
+	binary.LittleEndian.PutUint64(header[14:22], uint64(ts))
+
+	// OPC Operation Counter
+	binary.LittleEndian.PutUint32(header[22:26], 2)
+
+	// ChunkSize
+	binary.LittleEndian.PutUint16(header[26:28], 3)
+
+	// NetworkID
+	binary.LittleEndian.PutUint32(header[28:32], 4)
 
 	// Size
-	binary.LittleEndian.PutUint64(header[38:46], 3)
+	binary.LittleEndian.PutUint64(header[32:40], 5)
 
-	// Compression Algorithm
-	binary.LittleEndian.PutUint16(header[46:48], 4)
+	// CRC64 checksum
+	binary.LittleEndian.PutUint64(header[40:48], 1234567890)
 
-	// Encryption Algorithm
-	binary.LittleEndian.PutUint16(header[48:50], 5)
+	// Compression
+	binary.LittleEndian.PutUint16(header[48:50], 6)
 
-	// Signature Type
-	binary.LittleEndian.PutUint16(header[50:52], 6)
+	// Encryption
+	binary.LittleEndian.PutUint16(header[50:52], 7)
 
-	// Signature Size
-	binary.LittleEndian.PutUint32(header[52:56], 7)
+	// SignatureType
+	binary.LittleEndian.PutUint16(header[52:54], 8)
 
-	// File extension
-	copy(header[56:64], []byte{'a', 'f', 'f', 'i', 'x', 'i', 'n', 'g'})
+	// SignatureSize
+	binary.LittleEndian.PutUint16(header[54:56], 9)
 
-	// Custom data
-	copy(header[64:72], []byte{'t', 'a', 'i', 'l', 'o', 'r', 'e', 'd'})
+	// MetadataSpec
+	binary.LittleEndian.PutUint16(header[56:58], 10)
 
-	// delimiter
-	copy(header[72:80], delimiter[:])
+	// MetadataSize
+	binary.LittleEndian.PutUint32(header[58:62], 11)
 
+	// Delimiter
+	copy(header[62:64], delimiter[:])
 	return name, os.WriteFile(name, header[:], 0640)
 }

@@ -13,7 +13,7 @@ import (
 	"os"
 	"time"
 
-	"howijd.network/lib/cryptdatum"
+	"github.com/howijd/cryptdatum"
 )
 
 var verboseFlag = flag.Bool("v", false, "verbose output")
@@ -58,7 +58,7 @@ func cmdFileHasHeader(file string) {
 		exit(false, fmt.Errorf("%w: %s", cryptdatum.ErrIO, err.Error()))
 	}
 	if !cryptdatum.HasHeader(headb) {
-		exit(false, cryptdatum.ErrNoHeader)
+		exit(false, cryptdatum.ErrUnsupportedFormat)
 	}
 	os.Exit(0)
 }
@@ -75,10 +75,10 @@ func cmdFileHasValidHeader(file string) {
 		exit(false, err)
 	}
 	if !cryptdatum.HasHeader(headb) {
-		exit(false, cryptdatum.ErrNoHeader)
+		exit(false, cryptdatum.ErrUnsupportedFormat)
 	}
 	if !cryptdatum.HasValidHeader(headb) {
-		exit(false, cryptdatum.ErrInvalidHeader)
+		exit(false, cryptdatum.ErrHeaderInvalid)
 	}
 	os.Exit(0)
 }
@@ -94,7 +94,7 @@ func cmdFileInfo(file string) {
 	if err != nil {
 		exit(true, fmt.Errorf("%w: failed to decode header", err))
 	}
-	printHeader(&header)
+	printHeader(header)
 	os.Exit(0)
 }
 
@@ -108,39 +108,49 @@ func prettySize(size uint64) string {
 	return fmt.Sprintf("%d %s", size, units[i])
 }
 
-func printHeader(header *cryptdatum.Header) {
+func hhf(h cryptdatum.Header, flag uint64) bool {
+	return h.Flags&cryptdatum.DatumFlag(flag) != 0
+}
+
+func printHeader(header cryptdatum.Header) {
 	// swithc to text/template when the api is frozen
 	datumsize := prettySize(header.Size)
-	created := time.Unix(0, int64(header.Timestamp)).UTC().Format(time.RFC3339Nano)
-	fmt.Printf("+--------------+------------+-----------------------------+-------------------+---------------------------------+\n")
-	fmt.Printf("| CRYPTDATUM   | SIZE: %34s | CREATED:%43s | \n", datumsize, created)
-	fmt.Printf("+--------------+------------+-----------------------------+-------------------+---------------------------------+\n")
-	fmt.Printf("| Field        | Size (B)   | Description                 | Type              | Value                           |\n")
-	fmt.Printf("+--------------+------------+-----------------------------+-------------------+---------------------------------+\n")
-	fmt.Printf("| Version      | 2          | Version number              | uint16            | %-31d |\n", header.Version)
-	fmt.Printf("| Flags        | 8          | Flags                       | uint64            | %-31d |\n", header.Flags)
-	fmt.Printf("| Timestamp    | 8          | Timestamp                   | uint64            | %-31d |\n", header.Timestamp)
-	fmt.Printf("| OPC          | 4          | Operation Counter           | uint32            | %-31d |\n", header.OPC)
-	fmt.Printf("| Checksum     | 8          | Checksum                    | uint64            | %-31d |\n", header.Checksum)
-	fmt.Printf("| Size         | 8          | Total size                  | uint64            | %-31d |\n", header.Size)
-	fmt.Printf("| Comp. Alg.   | 2          | Compression algorithm       | uint16            | %-31d |\n", header.CompressionAlg)
-	fmt.Printf("| Encrypt. Alg | 2          | Encryption algorithm        | uint16            | %-31d |\n", header.EncryptionAlg)
-	fmt.Printf("| Sign. Type   | 2          | Signature type              | uint16            | %-31d |\n", header.SignatureType)
-	fmt.Printf("| Sign. Size   | 4          | Signature size              | uint32            | %-31d |\n", header.SignatureSize)
-	fmt.Printf("| File Ext.    | 8          | File extension              | char[8]           | %-31s |\n", header.FileExt)
-	fmt.Printf("| Custom       | 8          | Custom                      | uint8[8]          | %03d %03d %03d %03d %03d %03d %03d %03d |\n",
-		header.Custom[0], header.Custom[1], header.Custom[2], header.Custom[3],
-		header.Custom[4], header.Custom[5], header.Custom[6], header.Custom[7])
-	fmt.Printf("+--------------+------------+----------------------------+--------------------+---------------------------------+\n")
-	fmt.Printf("| FLAGS                                                                                                         |\n")
-	fmt.Printf("+------------+--------+-------------+--------+--------------+--------+------------------------------------------+\n")
-	fmt.Printf("| Invalid    | %-6t | OPC         | %-6t | Signed       | %-6t |                                          |\n",
-		(header.Flags&cryptdatum.DatumInvalid != 0), (header.Flags&cryptdatum.DatumOPC != 0), (header.Flags&cryptdatum.DatumSigned != 0))
-	fmt.Printf("| Draft      | %-6t | Compressed  | %-6t | Streamable   | %-6t |                                          |\n",
-		(header.Flags&cryptdatum.DatumDraft != 0), (header.Flags&cryptdatum.DatumCompressed != 0), (header.Flags&cryptdatum.DatumStreamable != 0))
-	fmt.Printf("| Empty      | %-6t | Encrypted   | %-6t | Custom       | %-6t |                                          |\n",
-		(header.Flags&cryptdatum.DatumEmpty != 0), (header.Flags&cryptdatum.DatumEncrypted != 0), (header.Flags&cryptdatum.DatumCustom != 0))
-	fmt.Printf("| Checksum   | %-6t | Extractable | %-6t | Compromised  | %-6t |                                          |\n",
-		(header.Flags&cryptdatum.DatumChecksum != 0), (header.Flags&cryptdatum.DatumExtractable != 0), (header.Flags&cryptdatum.DatumCompromised != 0))
-	fmt.Printf("+------------+--------+-------------+--------+--------------+--------+------------------------------------------+\n")
+
+	fmt.Printf("+-------------------+-----------------------------------------+------------------------------------+\n")
+	fmt.Printf("| CRYPTDATUM        | SIZE: %-23s | CREATED: %35s | \n", datumsize, header.Time().Format(time.RFC3339Nano))
+	fmt.Printf("+-------------------+----------+------------------------------+-------------+----------------------+\n")
+	fmt.Printf("| Field             | Size (B) | Description                  | Type        | Value                |\n")
+	fmt.Printf("+-------------------+----------+------------------------------+-------------+----------------------+\n")
+	fmt.Printf("| VERSION ID        | 2        | Version number               | 16-bit uint | %-20d |\n", header.Version)
+	fmt.Printf("| FLAGS             | 8        | Flags                        | 64-bit uint | %-20d |\n", header.Flags)
+	fmt.Printf("| TIMESTAMP         | 8        | Timestamp                    | 64-bit uint | %-20d |\n", header.Timestamp)
+	fmt.Printf("| OPERATION COUNTER | 4        | Operation Counter            | 32-bit uint | %-20d |\n", header.OPC)
+	fmt.Printf("| CHUNK SIZE        | 8        | Data chunk size              | 16-bit uint | %-20d |\n", header.ChunkSize)
+	fmt.Printf("| NETWORK ID        | 8        | Network ID                   | 32-bit uint | %-20d |\n", header.NetworkID)
+	fmt.Printf("| SIZE              | 8        | Total payload size           | 64-bit uint | %-20d |\n", header.Size)
+	fmt.Printf("| CHECKSUM          | 8        | Datum checksum               | 64-bit uint | %-20d |\n", header.Checksum)
+	fmt.Printf("| COMPRESSION ALGO. | 2        | Compression algorithm        | 16-bit uint | %-20d |\n", header.Compression)
+	fmt.Printf("| ENCRYPTION ALGO.  | 2        | Encryption algorithm         | 16-bit uint | %-20d |\n", header.Encryption)
+	fmt.Printf("| SIGNATURE TYPE    | 2        | Signature type               | 16-bit uint | %-20d |\n", header.SignatureType)
+	fmt.Printf("| SIGNATURE SIZE    | 2        | Signature size               | 16-bit uint | %-20d |\n", header.SignatureSize)
+	fmt.Printf("| METADATA SPEC     | 2        | Metadata specification       | 16-bit uint | %-20d |\n", header.MetadataSpec)
+	fmt.Printf("| MEATADATA SIZE    | 4        | Metadata size                | 32-bit uint | %-20d |\n", header.MetadataSize)
+	fmt.Printf("+-------------------+----------+------------------------------+-------------+----------------------+\n")
+	fmt.Printf("| DATUM FLAGS                  | Bits                         | Flag bit is set                    |\n")
+	fmt.Printf("+------------------------------+-------------------------------------------------------------------+\n")
+	fmt.Printf("| DATUM INVALID                | 1                            | %-5t                              |\n", hhf(header, 1))
+	fmt.Printf("| DATUM DRAFT                  | 2                            | %-5t                              |\n", hhf(header, 2))
+	fmt.Printf("| DATUM EMPTY                  | 4                            | %-5t                              |\n", hhf(header, 4))
+	fmt.Printf("| DATUM CHECKSUM               | 8                            | %-5t                              |\n", hhf(header, 8))
+	fmt.Printf("| DATUM OPC                    | 16                           | %-5t                              |\n", hhf(header, 16))
+	fmt.Printf("| DATUM COMPRESSED             | 32                           | %-5t                              |\n", hhf(header, 32))
+	fmt.Printf("| DATUM ENCRYPTED              | 64                           | %-5t                              |\n", hhf(header, 64))
+	fmt.Printf("| DATUM EXTRACTABLE            | 128                          | %-5t                              |\n", hhf(header, 128))
+	fmt.Printf("| DATUM SIGNED                 | 256                          | %-5t                              |\n", hhf(header, 256))
+	fmt.Printf("| DATUM CHUNKED                | 512                          | %-5t                              |\n", hhf(header, 512))
+	fmt.Printf("| DATUM METADATA               | 1024                         | %-5t                              |\n", hhf(header, 1024))
+	fmt.Printf("| DATUM COMPROMISED            | 2048                         | %-5t                              |\n", hhf(header, 2048))
+	fmt.Printf("| DATUM BIG ENDIAN             | 4096                         | %-5t                              |\n", hhf(header, 4096))
+	fmt.Printf("| DATUM DATUM NETWORK          | 8192                         | %-5t                              |\n", hhf(header, 8192))
+	fmt.Printf("+------------------------------+-------------------------------------------------------------------+\n")
 }
