@@ -54,6 +54,7 @@
   - [Cryptdatum Evolution](#cryptdatum-evolution)
 - [Examples and Use Cases](#examples-and-use-cases)
 - [Implementations](#implementations)
+  - [API](#api)
   - [Libraries](#libraries)
 - [Implementation Benchmarks](#implementation-benchmarks)
 
@@ -418,6 +419,28 @@ The official language-specific implementations should provide a public API and i
 This approach will help keep the official Cryptdatum language-specific libraries lightweight and easier to maintain in line with the evolving specification.
 
 Implementations **MUST** expose an API to get the semantic version of the specification from the Version field value, at least in the range of the current major semantic version.
+
+### API
+
+This section covers the API that official low-level language-specific implementations should expose. The naming of functions and parameters should follow language-specific best practices, as long as their meaning is easily recognizable across language domains.
+
+**has_header**
+
+This function checks if the provided data contains a Cryptdatum header. It looks for specific header fields and checks their alignment, but does not perform any further validations. If the data is likely to be Cryptdatum, the function **MUST** return true. Otherwise, it **MUST** return false. The function will read the first 64 bytes of the byte array to check for the presence of a header.
+
+- *parameters*: variable-length byte array
+- *returns*: boolean
+
+**has_valid_header**
+
+This function **MUST** check if the provided data contains a valid Cryptdatum header. It verifies the integrity of the header by checking the magic number, delimiter, and other fields. If the header is valid, the function **MUST** return true. Otherwise, it **MUST** return false.
+
+The data argument can contain any data as a variable-length byte array, but should be at least HeaderSize in length and start with the header. The function will read the first 64 bytes of the data to validate the header. If the data slice is smaller than 64 bytes, the function will return false, as the header is considered incomplete.
+
+It is important to note that this function only validates the header usage. It does not peek at the payload. E.g it does not check if a signature or metadata is present when these flag bits are set. However, it **SHOULD** perform additional header validations depending on the flag bits and corresponding header fields set which are required by the flag bit.
+
+- *parameters*: variable-length byte array
+- *returns*: boolean
 
 ### Libraries
 
