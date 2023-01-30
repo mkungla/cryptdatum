@@ -123,6 +123,7 @@ The following feature flags have been defined by the current specification and m
 - **DATUM METADATA (1024)**: This flag indicates that metadata is present in the Cryptdatum container. The *METADATA SIZE* field MUST indicate the size of the metadata in bytes, following the header. Additionally, the *METADATA SPEC* field must be set to a value that defines the metadata specification used, so that implementations know how to read and interpret the metadata. For more information on metadata, please refer to the Metadata section.
 - **DATUM COMPROMISED (2048)**: flag indicates that there are concerns about the integrity of the payload data in a Cryptdatum. This may occur if a checksum check fails or if the signature is invalid. When this flag is set, receivers should be cautious when processing the payload. The meaning of this flag can vary based on the individual use-case, and it may be helpful for the source to provide additional context about why the flag was set. However, this is not part of the specification. Implementations may create custom behavior around this flag, but header parsers must indicate that the header is invalid when this flag is set. One way to handle this would be to unset the Datum Compromised bit and set the Datum Draft bit.
 - **DATUM BIG ENDIAN (4096)**: Indicates that data payload endianness is Big-endian. Good example of usage of this is when Cryptdatum is used as data container for *DATAUM EXTRACTABLE (128)* which case changing byte order of underlying data would not make sense. 
+- **DATUM NETWORK (8192)**: Indicates that datum has *NETWORK ID* value set in header. 
 
 ### Cryptdatum Header Format
 
@@ -233,6 +234,18 @@ The Cryptdatum header consists of the following fields:
 ##### NETWORK ID
 
 **NETWORK ID** is an unsigned 32-bit integer that can be used to identify the source network of the payload. The specification does not strictly specify the usage of this field, but it is possible for there to be a decentralized or centralized registry for network IDs. This, however, does not prevent anyone from using their own Network ID registry in their own ecosystems. While a shared registry is **RECOMMENDED** for use in public, it is not required.
+
+*validation*
+
+**When used**
+
+- *DATUM NETWORK (8192)* flag bit **MUST** be set.
+- field value **MUST** be 4 bytes representing unsigned 32-bit integer with value greater than 0.
+
+**When not used**
+
+- *DATUM NETWORK (8192)* flag bit **MUST NOT** be set .
+- field value must be `0x00, 0x00, 0x00, 0x00`.
 
 ##### SIZE
 
