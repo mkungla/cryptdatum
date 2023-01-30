@@ -214,7 +214,8 @@ The Cryptdatum header consists of the following fields:
 
 ##### CHUNK SIZE
 
-**CHUNK SIZE** field when set, indicates that the payload can be processed in chunks of (size) rather than all at once. This is useful when the Cryptatum holds very large data, which is hard to process at once, and enables data processors to delegate Cryptdatum processing in parallel. When data is chunked, the flag bit *DATUM CHUNKED (512)* **MUST** be set. For example, chunk size can be adjusted to find the best compression ratio. Chunking data can be useful when Cryptdatum holds very large data, which is hard to process at once or when the transport or storage medium would handle data in smaller chunks more efficiently.
+**CHUNK SIZE** field when set, indicates that the payload can be processed in chunks of size in Kilobytes rather than all at once. This is useful when the Cryptatum holds very large data, which is hard to process at once, and enables data processors to delegate Cryptdatum processing in parallel. When data is chunked, the flag bit *DATUM CHUNKED (512)* **MUST** be set. For example, chunk size can be adjusted to find the best compression ratio. Chunking data can be useful when Cryptdatum holds very large data, which is hard to process at once or when the transport or storage medium would handle data in smaller chunks more efficiently. However, it should be noted that the current specification defines a maximum chunk size of 65535 kilobytes and a minimum of 1 kilobyte. Users who need smaller chunks may consider using a wrapper that breaks down the data into smaller chunks, while users who need larger chunks may consider concatenating multiple chunks of the maximum size.
+
 
 *validation*
 
