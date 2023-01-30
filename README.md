@@ -249,15 +249,51 @@ The Cryptdatum header consists of the following fields:
 
 ##### SIZE
 
-**SIZE** field is an 8-byte value that **SHALL** contain the total size of the data in bytes, including the header. This helps to ensure that the entire data payload has been received. It allows the decoder to know the amount of data to read in order to fully decode the Cryptdatum, for example when the datum is not chunked.
+**SIZE** field is an 8-byte value that **SHALL** contain the total size of the cryptdatum data payload in bytes. This helps to ensure that the entire data payload has been received. It allows the decoder to know the amount of data to read in order to fully decode the Cryptdatum, for example when the datum is not chunked. Also in case of extractable data it makes it easier to allocate or ensure availability of sufficient storage space. 
+When payload is in use and this field is set to value greater than 0 then *DATUM EMPTY (4)* flag bits **MUST NOT** be set.
+
+*validation*
+
+**When used**
+
+- *DATUM EMPTY (4)* flag bit **MUST NOT** be set.
+  
+**When not used**
+
+- *DATUM EMPTY (4)* flag bit **MUST** be set.
+- field value **MUST** be `0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00`
 
 ##### CHECKSUM
 
 **CHECKSUM** is an 8-byte value that contains a CRC64 checksum, which is used to verify the integrity of the data. If the checksum does not match the data, it is likely that the data has been corrupted or tampered with. When the Cryptdatum is chunked, then the CRC64 checksum value for each chunk **MUST** be the first 8 bytes of the chunk and the Checksum header field is the checksum of header fields and chunk checksums. When used, the flag bit *DATUM CHECKSUM (8)* **MUST** be set. Implementations **SHOULD** enforce using checksums. However, implementations **SHOULD NOT** treat it as an error when checksum is not used. There **MAY** be use cases where omitting checksum generation is a valid use case.
 
+*validation*
+
+**When used**
+
+- *DATUM CHECKSUM (8)* flag bit **MUST** be set.
+  
+**When not used**
+
+- *DATUM CHECKSUM (8)* flag bit **MUST NOT** be set.
+- field value **MUST** be `0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00`
+
 ##### COMPRESSION ALGORITHM
 
 **COMPRESSION ALGORITHM** field is a 2-byte value that indicates which compression algorithm was used, if any. When used, the flag bits *DATUM COMPRESSED (32)* **MUST** also be set to indicate that the data is compressed. See the [Compression](#compression) section of this specification for more information.
+
+*validation*
+
+**When used**
+
+- *DATUM COMPRESSED (32)* flag bit **MUST** be set if payload is compressed by Cryptdatum compression mechanism.
+- *DATUM COMPRESSED (32)* flag bit **MUST NOT** be set if payload is compressed by external compression mechanism.
+- field value **MUST** be set to Comperssion algorithm used when used together with *DATUM COMPRESSED (32)* ryptdatum compression mechanism
+- field value **MAY** be set if *DATUM COMPRESSED (32)* is not set.
+
+**When not used**
+
+- *DATUM COMPRESSED (32)* flag bit **MUST NOT** be set.
 
 ##### ENCRYPTION ALGORITHM
 
@@ -266,6 +302,18 @@ The Cryptdatum header consists of the following fields:
 ##### SIGNATURE TYPE
 
 **SIGNATURE TYPE** field is a 2-byte unsigned 16-bit integer value that indicates what mechanism was used for signing the datum if it is signed. *DATUM SIGNED (256)* flag bits **MUST** be set when data is signed.
+
+*validation*
+
+**When used** 
+
+- *DATUM SIGNED (256)* flag bit **MUST** be set if payload is signed by Cryptdatum signing mechanism.
+- field value **MUST** be set to Signing algorithm used.
+
+**When not used**
+
+- *DATUM SIGNED (256)* flag bit **MUST NOT** be set.
+- field value **MUST** be `0x00, 0x00`
 
 ##### SIGNATURE SIZE
 
@@ -278,6 +326,19 @@ The Cryptdatum header consists of the following fields:
 ```
 Signing implementations should implement the most appropriate and secure use of these fields based on the given signing method.
 
+*validation*
+
+**When used** 
+
+- *DATUM SIGNED (256)* flag bit **MUST** be set if payload is signed by Cryptdatum signing mechanism.
+- *SIGNATURE TYPE* field *MUST* be set to signing algorithm used for signing.
+- field value **MAY** be set if signing algorithm requires signature to be included in payload. 
+
+**When not used**
+
+- *DATUM SIGNED (256)* flag bit **MUST NOT** be set.
+- field value **MUST** be `0x00, 0x00`
+
 ##### METADATA SPEC
 
 **METADATA SPEC** field is a 2-byte value that serves as an identifier for the metadata schema specification. This field is required when metadata is used, and must be set accordingly. Along with this field, the *DATUM METADATA (1024)* flag bit **MUST** also be set to indicate that metadata is being used. The **METADATA SIZE** field **MUST** indicate the size of the metadata. When used, the format of the metadata in a Cryptdatum datum is as follows: Here is an example of the general format of a valid Cryptdatum when metadata is used:
@@ -288,6 +349,18 @@ Signing implementations should implement the most appropriate and secure use of 
 ```
 Note that the metadata field can be combined with signature and payload, or be used alone depending on the desired use case and security requirements. For more information on the format and usage of metadata in a Cryptdatum, refer to the [Metadata](#metadata) section.
 
+*validation*
+
+**When used** 
+
+- *DATUM METADATA (1024)* flag bit **MUST** be set if metadata is used.
+- field value **MUST** be set to indicate metadata specification used.
+
+**When not used**
+
+- *DATUM METADATA (1024)* flag bit **MUST NOT** be set.
+- field value **MUST** be `0x00, 0x00`
+
 ##### METADATA SIZE
 
 **METADATA SIZE** field is a 4-byte value that indicates the size of the metadata present after the header. This field is required when the *DATUM METADATA (1024)* flag bit is set in the header to indicate that metadata is being used. The format of a valid Cryptdatum when metadata is used is as follows:
@@ -295,6 +368,7 @@ Note that the metadata field can be combined with signature and payload, or be u
 <valid cryptdatum> ::= <cryptdatum header> <metadata>
   | <cryptdatum header> <metadata> <signature> <payload>
   | <cryptdatum header> <metadata> <payload>
+  | <cryptdatum header> <payload>
 ```
 It's important to note that the **METADATA SIZE** field is used to define the size of the metadata, for more information about metadata, see the [Metadata](#metadata) section.
 
