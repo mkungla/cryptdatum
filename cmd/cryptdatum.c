@@ -26,48 +26,62 @@ void pretty_size(uint64_t size, char* buf, size_t buf_len) {
 }
 
 void print_header(cdt_header_t* header) {
-  // TIMESTAMP
+  // // TIMESTAMP
   char created[_SIZE_BUF_LEN];
   struct tm tm;
   time_t t = (time_t)(header->timestamp / 1000000000);
-  gmtime_r(&t, &tm);
+  localtime_r(&t, &tm);
   strftime(created, sizeof(created), "%Y-%m-%dT%H:%M:%S", &tm);
-  snprintf(created + strlen(created), sizeof(created) - strlen(created), ".%09ldZ", header->timestamp % 1000000000);
+  snprintf(created + strlen(created), sizeof(created) - strlen(created), ".%09ld", header->timestamp % 1000000000);
+
+  int offset = tm.tm_gmtoff / 3600;
+  int offset_min = abs(tm.tm_gmtoff / 60) % 60;
+
+  char offset_str[10];
+  snprintf(offset_str, sizeof(offset_str), "%+03d:%02d", offset, offset_min);
+  strcat(created, offset_str);
+
   // SIZE
   char datumsize[_SIZE_BUF_LEN];
   pretty_size(header->size, datumsize, _SIZE_BUF_LEN);
 
-  printf("+--------------+------------+-----------------------------+-------------------+---------------------------------+\n");
-  printf("| CRYPTDATUM   | SIZE: %34s | CREATED:%43s |\n", datumsize, created);
-  printf("+--------------+------------+-----------------------------+-------------------+---------------------------------+\n");
-  printf("| Field        | Size (B)   | Description                 | Type              | Value                           |\n");
-  printf("+--------------+------------+-----------------------------+-------------------+---------------------------------+\n");
-  printf("| Version      | 2          | Version number              | uint16            | %-31u |\n", header->version);
-  printf("| Flags        | 8          | Flags                       | uint64            | %-31"PRIu64 " |\n", header->flags);
-  printf("| Timestamp    | 8          | Timestamp                   | uint64            | %-31"PRIu64 " |\n", header->timestamp);
-  printf("| OPC          | 4          | Operation Counter           | uint32            | %-31u |\n", header->opc);
-  printf("| Checksum     | 8          | Checksum                    | uint64            | %-31"PRIu64 " |\n", header->checksum);
-  printf("| Size         | 8          | Total size                  | uint64            | %-31"PRIu64 " |\n", header->size);
-  printf("| Comp. Alg.   | 2          | Compression algorithm       | uint16            | %-31u |\n", header->compression_alg);
-  printf("| Encrypt. Alg | 2          | Encryption algorithm        | uint16            | %-31u |\n", header->encryption_alg);
-  printf("| Sign. Type   | 2          | Signature type              | uint16            | %-31u |\n", header->signature_type);
-  printf("| Sign. Size   | 4          | Signature size              | uint32            | %-31u |\n", header->signature_size);
-  printf("| File Ext.    | 8          | File extension              | char[8]           | %-31s |\n", header->file_ext);
-  printf("| Custom       | 8          | Custom                      | uint8[8]          | %03hhu %03hhu %03hhu %03hhu %03hhu %03hhu %03hhu %03hhu |\n",
-    header->custom[0], header->custom[1], header->custom[2], header->custom[3],
-    header->custom[4], header->custom[5], header->custom[6], header->custom[7]);
-  printf("+--------------+------------+----------------------------+--------------------+---------------------------------+\n");
-  printf("| FLAGS                                                                                                         |\n");
-  printf("+------------+--------+-------------+--------+--------------+--------+------------------------------------------+\n");
-  printf("| Invalid    | %-6s | OPC         | %-6s | Signed       | %-6s |                                          |\n",
-    bool_str(header->flags & CTD_DATUM_INVALID), bool_str(header->flags & CDT_DATUM_OPC), bool_str(header->flags & CDT_DATUM_SIGNED));
-  printf("| Draft      | %-6s | Compressed  | %-6s | Streamable   | %-6s |                                          |\n",
-    bool_str(header->flags & CDT_DATUM_DRAFT), bool_str(header->flags & CDT_DATUM_COMPRESSED), bool_str(header->flags & CDT_DATUM_STREAMABLE));
-  printf("| Empty      | %-6s | Encrypted   | %-6s | Custom       | %-6s |                                          |\n",
-    bool_str(header->flags & CDT_DATUM_EMPTY), bool_str(header->flags & CDT_DATUM_ENCRYPTED), bool_str(header->flags & CDT_DATUM_CUSTOM));
-  printf("| Checksum   | %-6s | Extractable | %-6s | Compromised  | %-6s |                                          |\n",
-    bool_str(header->flags & CDT_DATUM_CHECKSUM), bool_str(header->flags & CDT_DATUM_EXTRACTABLE), bool_str(header->flags & CDT_DATUM_COMPROMISED));
-  printf("+------------+--------+-------------+--------+--------------+--------+------------------------------------------+\n");
+  printf("+-------------------+-----------------------------------------+------------------------------------+\n");
+  printf("| CRYPTDATUM        | SIZE: %-23s | CREATED: %35s | \n", datumsize, created);
+	printf("+-------------------+----------+------------------------------+-------------+----------------------+\n");
+	printf("| Field             | Size (B) | Description                  | Type        | Value                |\n");
+	printf("+-------------------+----------+------------------------------+-------------+----------------------+\n");
+	printf("| VERSION ID        | 2        | Version number               | 16-bit uint | %-20u |\n", header->version);
+	printf("| FLAGS             | 8        | Flags                        | 64-bit uint | %-20"PRIu64 " |\n", header->flags);
+	printf("| TIMESTAMP         | 8        | Timestamp                    | 64-bit uint | %-20"PRIu64 " |\n", header->timestamp);
+	printf("| OPERATION COUNTER | 4        | Operation Counter            | 32-bit uint | %-20u |\n", header->opc);
+	printf("| CHUNK SIZE        | 8        | Data chunk size              | 16-bit uint | %-20u |\n", header->chunk_size);
+	printf("| NETWORK ID        | 8        | Network ID                   | 32-bit uint | %-20u |\n", header->network_id);
+	printf("| SIZE              | 8        | Total payload size           | 64-bit uint | %-20"PRIu64 " |\n", header->size);
+	printf("| CHECKSUM          | 8        | Datum checksum               | 64-bit uint | %-20"PRIu64 " |\n", header->checksum);
+	printf("| COMPRESSION ALGO. | 2        | Compression algorithm        | 16-bit uint | %-20u |\n", header->compression);
+	printf("| ENCRYPTION ALGO.  | 2        | Encryption algorithm         | 16-bit uint | %-20u |\n", header->encryption);
+	printf("| SIGNATURE TYPE    | 2        | Signature type               | 16-bit uint | %-20u |\n", header->signature_type);
+	printf("| SIGNATURE SIZE    | 2        | Signature size               | 16-bit uint | %-20u |\n", header->signature_size);
+	printf("| METADATA SPEC     | 2        | Metadata specification       | 16-bit uint | %-20u |\n", header->metadata_spec);
+	printf("| MEATADATA SIZE    | 4        | Metadata size                | 32-bit uint | %-20u |\n", header->metadata_size);
+	printf("+-------------------+----------+------------------------------+-------------+----------------------+\n");
+	printf("| DATUM FLAGS                  | Bits                         | Flag bit is set                    |\n");
+	printf("+------------------------------+-------------------------------------------------------------------+\n");
+	printf("| DATUM INVALID                | 1                            | %-5s                              |\n", bool_str(header->flags & CDT_DATUM_INVALID));
+	printf("| DATUM DRAFT                  | 2                            | %-5s                              |\n", bool_str(header->flags & CDT_DATUM_DRAFT));
+	printf("| DATUM EMPTY                  | 4                            | %-5s                              |\n", bool_str(header->flags & CDT_DATUM_EMPTY));
+	printf("| DATUM CHECKSUM               | 8                            | %-5s                              |\n", bool_str(header->flags & CDT_DATUM_CHECKSUM));
+	printf("| DATUM OPC                    | 16                           | %-5s                              |\n", bool_str(header->flags & CDT_DATUM_OPC));
+	printf("| DATUM COMPRESSED             | 32                           | %-5s                              |\n", bool_str(header->flags & CDT_DATUM_COMPRESSED));
+	printf("| DATUM ENCRYPTED              | 64                           | %-5s                              |\n", bool_str(header->flags & CDT_DATUM_ENCRYPTED));
+	printf("| DATUM EXTRACTABLE            | 128                          | %-5s                              |\n", bool_str(header->flags & CDT_DATUM_EXTRACTABLE));
+	printf("| DATUM SIGNED                 | 256                          | %-5s                              |\n", bool_str(header->flags & CDT_DATUM_SIGNED));
+	printf("| DATUM CHUNKED                | 512                          | %-5s                              |\n", bool_str(header->flags & CDT_DATUM_CHUNKED));
+	printf("| DATUM METADATA               | 1024                         | %-5s                              |\n", bool_str(header->flags & CDT_DATUM_METADATA));
+	printf("| DATUM COMPROMISED            | 2048                         | %-5s                              |\n", bool_str(header->flags & CDT_DATUM_COMPROMISED));
+	printf("| DATUM BIG ENDIAN             | 4096                         | %-5s                              |\n", bool_str(header->flags & CDT_DATUM_BIG_ENDIAN));
+	printf("| DATUM DATUM NETWORK          | 8192                         | %-5s                              |\n", bool_str(header->flags & CDT_DATUM_NETWORK));
+	printf("+------------------------------+-------------------------------------------------------------------+\n");
 }
 
 int _cmd_file_has_header(char *filename)
@@ -91,7 +105,7 @@ int _cmd_file_has_header(char *filename)
   // Check header
   int exitcode = 0;
   if (bytes_read < CDT_HEADER_SIZE || has_header(headerb) != 1) {
-    if (VERBOSE) fprintf(stderr, "%s(%d)\n", CDT_ERR_STR[CDT_ERROR_NO_HEADER], CDT_ERROR_NO_HEADER);
+    if (VERBOSE) fprintf(stderr, "%s(%d)\n", CDT_ERR_STR[CDT_ERROR_UNSUPPORTED_FORMAT], CDT_ERROR_UNSUPPORTED_FORMAT);
     exitcode = 1;
   }
   free(headerb);
@@ -120,7 +134,7 @@ int _cmd_file_has_valid_header(char *filename)
 
   // Check that we read the full header
   if (bytes_read < CDT_HEADER_SIZE || has_header(headerb) != 1) {
-    if (VERBOSE) fprintf(stderr, "%s(%d)\n", CDT_ERR_STR[CDT_ERROR_NO_HEADER], CDT_ERROR_NO_HEADER);
+    if (VERBOSE) fprintf(stderr, "%s(%d)\n", CDT_ERR_STR[CDT_ERROR_UNSUPPORTED_FORMAT], CDT_ERROR_UNSUPPORTED_FORMAT);
     exitcode = 1;
   }
   if (exitcode == 0 && has_valid_header(headerb) != 1) {
@@ -130,6 +144,7 @@ int _cmd_file_has_valid_header(char *filename)
 
   free(headerb);
   return exitcode;
+  return 0;
 }
 
 

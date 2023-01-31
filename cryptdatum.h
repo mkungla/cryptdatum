@@ -21,10 +21,6 @@
 #include <stdint.h> // uint8_t
 #include <endian.h>
 
-#ifdef __cplusplus
-extern "C" {
-#endif
-
 /**
  * @brief Size of a Cryptdatum header in bytes
  *
@@ -76,7 +72,7 @@ static const uint8_t CDT_DELIMITER[] = { 0xA6, 0xE5 };
 #define CDT_MAGIC_DATE 1652155382000000001
 
 typedef enum uint64_t{
-  CTD_DATUM_INVALID = (1 << 0),
+  CDT_DATUM_INVALID = (1 << 0),
   CDT_DATUM_DRAFT = (1 << 1),
   CDT_DATUM_EMPTY = (1 << 2),
   CDT_DATUM_CHECKSUM = (1 << 3),
@@ -199,9 +195,5 @@ cdt_error_t decode_header(cdt_reader_fn read, void* source, cdt_header_t* header
  * @return The number of elements read, or 0 if an error occurred.
  */
 size_t cdt_fread(uint8_t *buffer, size_t size, size_t nmemb, void* fp);
-
-#ifdef __cplusplus
-}
-#endif
 
 #endif // CRYPTDATUM_H

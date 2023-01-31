@@ -92,7 +92,12 @@ CDT_BUILD_LIB_DIR = $(CDT_BUILD_DIR)/lib
 CDT_BENCH_DIR = $(CDT_SRC_DIR)/bench
 CDT_SRC_DIR := $(realpath $(dir $(this-makefile)))
 CDT_CMD_DIR := $(CDT_SRC_DIR)/cmd
+CDT_TESTDATA_DIR = ${CDT_SRC_DIR}/tests/spec/testdata
 
+# C
+CDT_C_BIN = $(CDT_BUILD_BIN_DIR)/cryptdatum-c
+# GO
+CDT_GO_BIN = $(CDT_BUILD_BIN_DIR)/cryptdatum-go
 # RUST
 CDT_RUST_LIB = $(CDT_BUILD_LIB_DIR)/libcryptdatum.rlib
 
@@ -104,6 +109,20 @@ endif
 # but we want to display it when entering to the output directory
 # so that IDEs/editors are able to understand relative filenames.
 MAKEFLAGS += --no-print-directory
+
+define test_bin_cmd_exit_code
+	@$(1) $(2) $(3); \
+	LAST_EXIT_CODE=$$?; \
+	cmd_bin_name=$(notdir $1); \
+	testdata_file_name=$(notdir $3); \
+	if [ $$LAST_EXIT_CODE -eq $(4) ]; \
+	then \
+		echo "test(PASSED) $$cmd_bin_name $(2) $$testdata_file_name"; \
+	else \
+		echo "test(FAILED): Unexpected exit code '$$LAST_EXIT_CODE' want '$(4)' $(1) $(2) $(3)"; \
+		exit 1; \
+	fi
+endef
 
 ####################
 # BINARIES
@@ -120,7 +139,7 @@ bin-c:
 
 PHONY += bin-go
 bin-go:
-	@go build -o $(CDT_BUILD_BIN_DIR)/cryptdatum-go $(CDT_CMD_DIR)/cryptdatum.go
+	@go build -o $(CDT_GO_BIN) $(CDT_CMD_DIR)/cryptdatum.go
 
 PHONY += bin-rust
 bin-rust: lib-rust
@@ -150,15 +169,33 @@ PHONY += test
 test: test-c test-go test-rust
 
 PHONY += test-c
-test-c:
+test-c: bin-c
+	@echo 'TEST C RUNNING'
 	@gcc -o $(CDT_BUILD_TEST_DIR)/cryptdatum-c-test \
 		cryptdatum_test.c \
 		cryptdatum.c \
 		&& $(CDT_BUILD_TEST_DIR)/cryptdatum-c-test
+	$(call test_bin_cmd_exit_code, $(CDT_C_BIN), file-has-header, $(CDT_TESTDATA_DIR)/v1/invalid-header-full-featured.cdt,0)
+	$(call test_bin_cmd_exit_code, $(CDT_C_BIN), file-has-header, $(CDT_TESTDATA_DIR)/v1/invalid-header-full-featured.ct,1)
+	$(call test_bin_cmd_exit_code, $(CDT_C_BIN), file-has-header, $(CDT_TESTDATA_DIR)/v1/valid-header-full-featured.cdt,0)
+	$(call test_bin_cmd_exit_code, $(CDT_C_BIN), file-has-header, $(CDT_TESTDATA_DIR)/v1/valid-header-minimal.cdt,0)
+	$(call test_bin_cmd_exit_code, $(CDT_C_BIN), file-has-valid-header, $(CDT_TESTDATA_DIR)/v1/invalid-header-full-featured.cdt,1)
+	$(call test_bin_cmd_exit_code, $(CDT_C_BIN), file-has-valid-header, $(CDT_TESTDATA_DIR)/v1/valid-header-full-featured.cdt,0)
+	$(call test_bin_cmd_exit_code, $(CDT_C_BIN), file-has-valid-header, $(CDT_TESTDATA_DIR)/v1/valid-header-minimal.cdt,0)
+	@echo 'TEST C DONE'
 
 PHONY += test-go
-test-go:
+test-go: bin-go
+	@echo 'TEST GO RUNNING'
 	@go test -cover .
+	$(call test_bin_cmd_exit_code, $(CDT_GO_BIN), file-has-header, $(CDT_TESTDATA_DIR)/v1/invalid-header-full-featured.cdt,0)
+	$(call test_bin_cmd_exit_code, $(CDT_GO_BIN), file-has-header, $(CDT_TESTDATA_DIR)/v1/invalid-header-full-featured.ct,1)
+	$(call test_bin_cmd_exit_code, $(CDT_GO_BIN), file-has-header, $(CDT_TESTDATA_DIR)/v1/valid-header-full-featured.cdt,0)
+	$(call test_bin_cmd_exit_code, $(CDT_GO_BIN), file-has-header, $(CDT_TESTDATA_DIR)/v1/valid-header-minimal.cdt,0)
+	$(call test_bin_cmd_exit_code, $(CDT_GO_BIN), file-has-valid-header, $(CDT_TESTDATA_DIR)/v1/invalid-header-full-featured.cdt,1)
+	$(call test_bin_cmd_exit_code, $(CDT_GO_BIN), file-has-valid-header, $(CDT_TESTDATA_DIR)/v1/valid-header-full-featured.cdt,0)
+	$(call test_bin_cmd_exit_code, $(CDT_GO_BIN), file-has-valid-header, $(CDT_TESTDATA_DIR)/v1/valid-header-minimal.cdt,0)
+	@echo 'TEST GO DONE'
 
 PHONY += test-rust
 test-rust:
