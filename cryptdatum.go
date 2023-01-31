@@ -27,11 +27,11 @@ const (
 	// implementations of the Cryptdatum library to allocate sufficient memory for
 	// a Cryptdatum header, or to check the size of a Cryptdatum header that has
 	// been read from a stream.
-	HeaderSize = 64
+	HeaderSize int = 64
 
 	// MagicDate is date which datum can not be older. Therefore it is the minimum
 	// value possible for Header.Timestamp
-	MagicDate = 1652155382000000001
+	MagicDate uint64 = 1652155382000000001
 )
 
 type DatumFlag uint64

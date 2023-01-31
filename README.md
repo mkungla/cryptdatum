@@ -501,9 +501,9 @@ Cryptdatum official implementations in different languages **MUST** export a pub
 
 The official implementation should provide language-specific interfaces for encoding and decoding, encryption and decryption, and signing and signature verification.
 
-The official language-specific implementations should provide a public API and implement functionality to check if byte data has a header and if the header is valid according to the specification. They **SHOULD** also implement basic Cryptatum data composition and reading functionality. Additional features such as specific compression, encryption, and signing support should be implemented in higher-level libraries.
+The official language-specific implementations **SHOULD** provide a public API and implement functionality to check if byte data has a header and if the header is valid according to the specification. They **SHOULD** also implement and expose minimal Cryptatum data encoding and decoding API. Additional features such as specific compression, encryption, and signing support should be implemented in higher-level libraries.
 
-This approach will help keep the official Cryptdatum language-specific libraries lightweight and easier to maintain in line with the evolving specification.
+This approach will help keep the official Cryptdatum language-specific libraries lightweight and easier to maintain in line with the evolving specification. Therefore official implementation **MUST NOT** introduce external and third party dependencies, API **MUST** be implemented using language specific standard library only.
 
 Implementations **MUST** expose an API to get the semantic version of the specification from the Version field value, at least in the range of the current major semantic version.
 

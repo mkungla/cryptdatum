@@ -27,6 +27,8 @@ endif
 # That's our default target when none is given on the command line
 PHONY := help
 help:
+	@echo  'CRYPTDATUM MAKEFILE'
+	@echo  ''
 	@echo  'BINARIES:'
 	@echo  '  bin 			- build all binaries'
 	@echo  '  bin-c	  		- build C cli tool'
@@ -43,11 +45,14 @@ help:
 	@echo  '  test-rust		- test Rust source'
 	@echo  '  test-go		- test Go source'
 	@echo  ''
-	@echo  'BENCHMARK:'
+	@echo  'BENCHMARKS:'
 	@echo  '  bench		  	- run all benchmarks'
 	@echo  ''
+	@echo  'SPECS:'
+	@echo  '  spec-v1-gen-testdata	- generate tastdata for specification v1'
+	@echo  ''
 	@echo  'GENERAL:'
-	@echo  '  clean		  	- Remove most generated files but keep the config and'
+	@echo  '  clean		  	- remove most generated files but keep the config and'
 	@echo  '            	       	  enough build support to build external modules'
 	@echo  '  env	  		- print make config'
 	@echo  '  version	  	- print verision info which would be used by build'
@@ -68,6 +73,8 @@ endif
 export CDT_BUILD_VERBOSE
 
 ifneq ($(CDT_BUILD_OUTPUT),)
+this-makefile := $(lastword $(MAKEFILE_LIST))
+
 # Make's built-in functions such as $(abspath ...), $(realpath ...) cannot
 # expand a shell special character '~'. We use a somewhat tedious way here.
 CDT_BUILD_DIR := $(shell mkdir -p $(CDT_BUILD_OUTPUT)/{bin,lib} && cd $(CDT_BUILD_OUTPUT) && pwd)
@@ -79,15 +86,15 @@ else
 CDT_BUILD_DIR := $(CURDIR)
 endif # ifneq ($(CDTBUILD_OUTPUT),)
 
-CDT_BUILD_LIB_DIR = $(CDT_BUILD_DIR)/lib
 CDT_BUILD_BIN_DIR = $(CDT_BUILD_DIR)/bin
+CDT_BUILD_TEST_DIR = $(CDT_BUILD_DIR)/tests
+CDT_BUILD_LIB_DIR = $(CDT_BUILD_DIR)/lib
 CDT_BENCH_DIR = $(CDT_SRC_DIR)/bench
-
-CDT_RUST_LIB = $(CDT_BUILD_LIB_DIR)/libcryptdatum.rlib
-
-this-makefile := $(lastword $(MAKEFILE_LIST))
 CDT_SRC_DIR := $(realpath $(dir $(this-makefile)))
 CDT_CMD_DIR := $(CDT_SRC_DIR)/cmd
+
+# RUST
+CDT_RUST_LIB = $(CDT_BUILD_LIB_DIR)/libcryptdatum.rlib
 
 ifneq ($(words $(subst :, ,$(CDT_SRC_DIR))), 1)
 $(error source directory cannot contain spaces or colons)
@@ -98,13 +105,22 @@ endif
 # so that IDEs/editors are able to understand relative filenames.
 MAKEFLAGS += --no-print-directory
 
-PHONY += clean
-clean:
-	rm -rf $(CDT_BUILD_DIR)
+####################
+# BINARIES
+####################
+# build all binaries and deps
+PHONY += bin
+bin: bin-c bin-rust bin-go
 
-PHONY += bench
-bench:
-	$(CDT_BENCH_DIR)/run-benchmarks.py
+PHONY += bin-c
+bin-c:
+	@gcc -o $(CDT_BUILD_BIN_DIR)/cryptdatum-c \
+		$(CDT_CMD_DIR)/cryptdatum.c \
+		cryptdatum.c
+
+PHONY += bin-go
+bin-go:
+	@go build -o $(CDT_BUILD_BIN_DIR)/cryptdatum-go $(CDT_CMD_DIR)/cryptdatum.go
 
 PHONY += bin-rust
 bin-rust: lib-rust
@@ -116,23 +132,9 @@ bin-rust: lib-rust
 		-C opt-level=3 \
 		-o $(CDT_BUILD_BIN_DIR)/cryptdatum-rust
 
-PHONY += bin-go
-bin-go:
-	@go build -o $(CDT_BUILD_BIN_DIR)/cryptdatum-go $(CDT_CMD_DIR)/cryptdatum.go
-
-bin-c:
-	@gcc -o $(CDT_BUILD_BIN_DIR)/cryptdatum-c \
-		$(CDT_CMD_DIR)/cryptdatum.c \
-		cryptdatum.c
-
-# build all binaries and deps
-PHONY += bin
-bin: bin-rust bin-go bin-c
-
-PHONY += env
-env:
-	$(foreach VAR,$(sort $(filter CDT_%,$(.VARIABLES))),$(info $(VAR) is $($(VAR))))
-
+####################
+# LIBRARIES
+####################
 PHONY += lib-rust
 lib-rust:
 	@rustc $(CDT_SRC_DIR)/cryptdatum.rs \
@@ -141,23 +143,51 @@ lib-rust:
 		-C opt-level=3 \
 		-o $(CDT_RUST_LIB)
 
+####################
+# TESTS
+####################
 PHONY += test
-test: test-rust test-go test-c
+test: test-c test-go test-rust
 
-PHONY += test-rust
-test-rust:
-	@cargo test
+PHONY += test-c
+test-c:
+	@gcc -o $(CDT_BUILD_TEST_DIR)/cryptdatum-c-test \
+		cryptdatum_test.c \
+		cryptdatum.c \
+		&& $(CDT_BUILD_TEST_DIR)/cryptdatum-c-test
 
 PHONY += test-go
 test-go:
 	@go test -cover .
 
-PHONY += test-c
-test-c:
-	gcc -o $(CDT_BUILD_BIN_DIR)/cryptdatum-c-test \
-		cryptdatum_test.c \
-		cryptdatum.c \
-		&& $(CDT_BUILD_BIN_DIR)/cryptdatum-c-test
+PHONY += test-rust
+test-rust:
+	@cargo test
+
+####################
+# BENCHMARKS
+####################
+PHONY += bench
+bench:
+	$(CDT_BENCH_DIR)/run-benchmarks.py
+
+####################
+# SPECS
+####################
+PHONY += spec-v1-gen-testdata
+spec-v1-gen-testdata:
+	go generate ./...
+
+####################
+# GENERAL
+####################
+PHONY += clean
+clean:
+	rm -rf $(CDT_BUILD_DIR)
+
+PHONY += env
+env:
+	$(foreach VAR,$(sort $(filter CDT_%,$(.VARIABLES))),$(info $(VAR) is $($(VAR))))
 
 PHONY += version
 version:
