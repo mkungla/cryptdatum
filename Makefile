@@ -77,7 +77,7 @@ this-makefile := $(lastword $(MAKEFILE_LIST))
 
 # Make's built-in functions such as $(abspath ...), $(realpath ...) cannot
 # expand a shell special character '~'. We use a somewhat tedious way here.
-CDT_BUILD_DIR := $(shell mkdir -p $(CDT_BUILD_OUTPUT)/{bin,lib} && cd $(CDT_BUILD_OUTPUT) && pwd)
+CDT_BUILD_DIR := $(shell mkdir -p $(CDT_BUILD_OUTPUT)/{bin,lib,tests} && cd $(CDT_BUILD_OUTPUT) && pwd)
 $(if $(CDT_BUILD_DIR),, \
      $(error failed to create output directory "$(CDT_BUILD_OUTPUT)"))
 # $(realpath ...) resolves symlinks

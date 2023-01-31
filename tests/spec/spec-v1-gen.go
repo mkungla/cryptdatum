@@ -25,7 +25,7 @@ func main() {
 
 	for _, testdataFunc := range testdataFuncs {
 		data, name, err := testdataFunc()
-		fpath := filepath.Join("testdata", name)
+		fpath := filepath.Join("testdata/v1", name)
 		if err != nil {
 			log.Printf("failed to create testdata for, err=\"%s\" file=\"%s\"\n", err, fpath)
 			os.Exit(1)

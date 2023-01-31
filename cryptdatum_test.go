@@ -393,7 +393,7 @@ func TestCompromizedData(t *testing.T) {
 
 func TestSpecV1_TestdataHeaders(t *testing.T) {
 	for name, isValid := range spec.Latest.TestFiles {
-		testdata := filepath.Join("tests/spec/testdata", name)
+		testdata := filepath.Join("tests/spec/testdata/v1", name)
 		if _, err := os.Stat(testdata); err != nil {
 			t.Errorf("testdata: %s %s", name, err.Error())
 			continue
@@ -415,7 +415,7 @@ func TestSpecV1_TestdataHeaders(t *testing.T) {
 }
 
 func TestSpecV1_DecodeHeader_ValidMinimalHeader(t *testing.T) {
-	head, err := os.Open("tests/spec/testdata/valid-header-minimal.cdt")
+	head, err := os.Open("tests/spec/testdata/v1/valid-header-minimal.cdt")
 	if err != nil {
 		t.Error(err)
 	}
@@ -433,7 +433,7 @@ func TestSpecV1_DecodeHeader_ValidMinimalHeader(t *testing.T) {
 }
 
 func TestSpecV1_DecodeHeader_ValidFullFeaturedHeader(t *testing.T) {
-	head, err := os.Open("tests/spec/testdata/valid-header-full-featured.cdt")
+	head, err := os.Open("tests/spec/testdata/v1/valid-header-full-featured.cdt")
 	if err != nil {
 		t.Error(err)
 	}
