@@ -21,9 +21,9 @@ func headerSetFlag(data []byte, flag DatumFlag) uint64 {
 	if bits&uint64(flag) != 0 {
 		return bits // already has a flag
 	}
-	flags := bits | uint64(flag)
-	binary.LittleEndian.PutUint64(data[6:14], flags)
-	return flags
+	bits |= uint64(flag)
+	binary.LittleEndian.PutUint64(data[6:14], bits)
+	return bits
 }
 
 func headerHasFlag(data []byte, flag DatumFlag) bool {

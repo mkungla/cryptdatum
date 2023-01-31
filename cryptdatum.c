@@ -2,30 +2,15 @@
 //  +build !cgo
 
 /*
- * Cryptdatum is a C library that implements the Cryptdatum format. It provides
- * functions to parse, verify, and create Cryptdatum headers, as well as to
- * encode and decode Cryptdatum data payloads.
- *
- * The Cryptdatum format is a binary data format that is designed to be secure,
- * efficient, and extensible. It uses a 64-byte header to store metadata about
- * the data payload, such as the version of the format, the time when the data
- * was created, and the features used by the datum.
- *
- * The header is followed by the data payload, which can be compressed, encrypted,
- * or signed. The data payload can be of any size, and can contain any type of
- * data, such as text, binary, or multimedia.
- *
- * The Cryptdatum library is easy to use, and has a simple API. It is written in
- * pure C, and has no external dependencies. It can be used in any C project,
- * on any platform, with minimal setup.
- *
- * To start using the Cryptdatum library, include the "cryptdatum.h" header file
- * in your C source code, and link with the "cryptdatum" library. Then, call
- * the library functions as needed to parse, verify, create, encode, and decode
- * Cryptdatum data.
- *
- * For more information about the Cryptdatum format, see the specification at
- * https://example.com/cryptdatum-spec.
+ * The Cryptdatum format is a powerful, flexible universal data format for 
+ * storing data in a long-term compatible way across domains and with any 
+ * encryption and compression algorithms. It consists of a 64-byte header 
+ * that stores information about the data payload, followed by the data 
+ * payload or 64-byte header followed by the optional metadata, signature, 
+ * and then data payload. Cryptdatum is designed to be flexible enough to 
+ * accommodate a variety of use cases, while still maintaining simplicity. 
+ * Usage of all features used in the data can be determined by reading setting 
+ * from different header flags and accompanying header fields.
  */
 
 #include "cryptdatum.h"
@@ -33,8 +18,6 @@
 #include <stdbool.h>
 #include <string.h>
 #include <stdio.h>
-
-#define _MAGIC_DATE 1652155382000000001
 
 const uint8_t empty[8] = {0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00};
 
@@ -45,7 +28,7 @@ int has_header(const uint8_t *data)
     return false;
   }
    // check magic and delimiter
-  return (memcmp(data, CDT_MAGIC, 8) == 0 && memcmp(data + 72, CDT_DELIMITER, 8) == 0);
+  return (memcmp(data, CDT_MAGIC, 4) == 0 && memcmp(data + 62, CDT_DELIMITER, 2) == 0);
 }
 
 int has_valid_header(const uint8_t *data)
@@ -55,59 +38,69 @@ int has_valid_header(const uint8_t *data)
   }
 
   // check version is >= 1
-  if (le16toh(*((uint16_t *)(data + 8))) < 1) {
+  if (le16toh(*((uint16_t *)(data + 4))) < 1) {
     return false;
   }
 
-  // break here if DatumDraft is set
-  uint64_t flags = le64toh(*((uint64_t *)(data + 10)));
+  // break here if CDT_DATUM_DRAFT or CDT_DATUM_COMPROMISED is set
+  uint64_t flags = le64toh(*((uint64_t *)(data + 6)));
   if (flags & CDT_DATUM_DRAFT || flags & CDT_DATUM_COMPROMISED) {
     return true;
   }
 
   // It it was not a draft it must have timestamp
-  if (le64toh(*((uint64_t *)(data + 18))) < _MAGIC_DATE) {
+  if (le64toh(*((uint64_t *)(data + 14))) < CDT_MAGIC_DATE) {
     return false;
   }
 
-  // DatumOPC is set then counter value must be gte 1
-  if (flags & CDT_DATUM_OPC) {
-    if (le32toh(*((uint32_t *)(data + 26))) < 1) {
-      return false;
-    }
-  }
-
-  // DatumChecksum Checksum must be set
-  if (flags & CDT_DATUM_CHECKSUM && memcmp(data + 30, empty, 8) == 0) {
+  // CDT_DATUM_OPC is set then counter value must be gte 1
+  if ((flags & CDT_DATUM_OPC && (le32toh(*((uint32_t *)(data + 22))) == 0)) ||  (!(flags & CDT_DATUM_OPC) && (le32toh(*((uint32_t *)(data + 22))) > 0))) {
     return false;
   }
 
-  // DatumEmpty and DatumDraft
-  if (flags & CDT_DATUM_EMPTY) {
-    // Size field must be set
-    if (le64toh(*((uint64_t *)(data + 38))) < 1) {
-      return false;
-    }
-
-    // DatumCompressed compression algorithm must be set
-    if (flags & CDT_DATUM_COMPRESSED && le16toh(*((uint16_t *)(data + 46))) < 1) {
-      return false;
-    }
-
-    // DatumEncrypted encryption algorithm must be set
-    if (flags & CDT_DATUM_ENCRYPTED && le16toh(*((uint16_t *)(data + 48))) < 1) {
-      return false;
-    }
-
-    // DatumExtractable payl;oad can be extracted then filename must be set
-    if (flags & CDT_DATUM_EXTRACTABLE && memcmp(data + 50, empty, 8) == 0) {
-      return false;
-    }
+  // CDT_DATUM_CHUNKED is set then chunk size value must be gte 1
+  if ((flags & CDT_DATUM_CHUNKED && (le16toh(*((uint16_t *)(data + 26))) == 0)) || (!(flags & CDT_DATUM_CHUNKED) && (le16toh(*((uint16_t *)(data + 26))) > 0))) {
+    return false;
   }
 
-  // DatumSigned then Signature Type must be also set
+	// CDT_DATUM_NETWORK is set then network id value must be gte 1
+  if ((flags & CDT_DATUM_NETWORK && (le32toh(*((uint32_t *)(data + 28))) == 0)) || (!(flags & CDT_DATUM_NETWORK) && (le32toh(*((uint32_t *)(data + 28))) > 0))) {
+    return false;
+  }
+  
+  // CDT_DATUM_EMPTY is set then size value must be 0
+	// CDT_DATUM_EMPTY is not set then size value must be gte 1
+  if ((flags & CDT_DATUM_EMPTY && (le64toh(*((uint64_t *)(data + 32))) > 0)) || (!(flags & CDT_DATUM_EMPTY) && le64toh(*((uint64_t *)(data + 32))) == 0)) {
+    return false; 
+  }
+
+  // CDT_DATUM_CHECKSUM then Checksum must be set
+  if ((flags & CDT_DATUM_CHECKSUM && memcmp(data + 40, empty, 8) == 0) || (!(flags & CDT_DATUM_CHECKSUM) && memcmp(data + 40, empty, 8) > 0)) {
+    return false;
+  }
+
+  // CDT_DATUM_COMPRESSED compression algorithm must be set
+  if (flags & CDT_DATUM_COMPRESSED && le16toh(*((uint16_t *)(data + 48))) == 0) {
+    return false;
+  }
+
+  // CDT_DATUM_ENCRYPTED encryption algorithm must be set
+  if (flags & CDT_DATUM_ENCRYPTED && le16toh(*((uint16_t *)(data + 50))) == 0) {
+    return false;
+  }
+
+
+  // CDT_DATUM_SIGNED then Signature Type must be also set
   // however value of the signature Size may depend on Signature Type
-  if (flags & CDT_DATUM_SIGNED && le16toh(*((uint16_t *)(data + 58))) < 1) {
+  if ((flags & CDT_DATUM_SIGNED && le16toh(*((uint16_t *)(data + 52))) == 0) || (!(flags & CDT_DATUM_SIGNED) && le16toh(*((uint16_t *)(data + 52))) > 0)) {
+    return false;
+  }
+
+  // CDT_DATUM_METADATA MEATADATA SPEC  and MEATADATA SIZE
+  if (flags & CDT_DATUM_METADATA && le16toh(*((uint16_t *)(data + 56))) == 0) {
+    return false;
+  }
+  if (!(flags & CDT_DATUM_METADATA) && (le16toh(*((uint16_t *)(data + 56))) > 0 || le16toh(*((uint32_t *)(data + 58))) > 0)) {
     return false;
   }
 
@@ -116,38 +109,38 @@ int has_valid_header(const uint8_t *data)
 
 cdt_error_t decode_header(cdt_reader_fn read, void* source, cdt_header_t* header)
 {
-  // Allocate a buffer to hold the header
-  uint8_t *headerb = malloc(CDT_HEADER_SIZE);
-  size_t bytes_read = read(headerb, 1, CDT_HEADER_SIZE, source);
-  if (bytes_read < CDT_HEADER_SIZE) {
-    free(headerb);
-    return CDT_ERROR_IO;
-  }
+  // // Allocate a buffer to hold the header
+  // uint8_t *headerb = malloc(CDT_HEADER_SIZE);
+  // size_t bytes_read = read(headerb, 1, CDT_HEADER_SIZE, source);
+  // if (bytes_read < CDT_HEADER_SIZE) {
+  //   free(headerb);
+  //   return CDT_ERROR_IO;
+  // }
 
-  if (has_header(headerb) != 1) {
-    return CDT_ERROR_NO_HEADER;
-  }
+  // if (has_header(headerb) != 1) {
+  //   return CDT_ERROR_NO_HEADER;
+  // }
 
-  // Parse the header
-  memcpy(header->_magic, headerb, 8);
-  header->version = le16toh(*((uint16_t*)(headerb + 8)));
-  header->flags = le64toh(*((uint64_t*)(headerb + 10)));
-  header->timestamp = le64toh(*((uint64_t*)(headerb + 18)));
-  header->opc = le32toh(*((uint32_t*)(headerb + 26)));
-  header->checksum = le64toh(*((uint64_t*)(headerb + 30)));
-  header->size = le64toh(*((uint64_t*)(headerb + 38)));
-  header->compression_alg = le16toh(*((uint16_t*)(headerb + 46)));
-  header->encryption_alg = le16toh(*((uint16_t*)(headerb + 48)));
-  header->signature_type = le16toh(*((uint16_t*)(headerb + 50)));
-  header->signature_size = le32toh(*((uint32_t*)(headerb + 52)));
-  memcpy(header->file_ext, headerb + 56, 8);
-  // Read the file_ext field directly into the file_ext field in the cdt_header_t struct
-  read(header->file_ext, 1, 8, source);
-  // Make sure the file_ext field is null-terminated
-  header->file_ext[8] = '\0';
-  memcpy(header->custom, headerb + 64, 8);
-  memcpy(header->_delimiter, headerb + 72, 8);
-  free(headerb);
+  // // Parse the header
+  // memcpy(header->_magic, headerb, 8);
+  // header->version = le16toh(*((uint16_t*)(headerb + 8)));
+  // header->flags = le64toh(*((uint64_t*)(headerb + 10)));
+  // header->timestamp = le64toh(*((uint64_t*)(headerb + 18)));
+  // header->opc = le32toh(*((uint32_t*)(headerb + 26)));
+  // header->checksum = le64toh(*((uint64_t*)(headerb + 30)));
+  // header->size = le64toh(*((uint64_t*)(headerb + 38)));
+  // header->compression_alg = le16toh(*((uint16_t*)(headerb + 46)));
+  // header->encryption_alg = le16toh(*((uint16_t*)(headerb + 48)));
+  // header->signature_type = le16toh(*((uint16_t*)(headerb + 50)));
+  // header->signature_size = le32toh(*((uint32_t*)(headerb + 52)));
+  // memcpy(header->file_ext, headerb + 56, 8);
+  // // Read the file_ext field directly into the file_ext field in the cdt_header_t struct
+  // read(header->file_ext, 1, 8, source);
+  // // Make sure the file_ext field is null-terminated
+  // header->file_ext[8] = '\0';
+  // memcpy(header->custom, headerb + 64, 8);
+  // memcpy(header->_delimiter, headerb + 72, 8);
+  // free(headerb);
   return CDT_ERROR_NONE;
 }
 

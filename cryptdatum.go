@@ -74,7 +74,7 @@ var (
 	ErrIO                = fmt.Errorf("%w i/o", Err)
 	ErrEOF               = fmt.Errorf("%w EOF", Err)
 	ErrUnsupportedFormat = fmt.Errorf("%w unsupported format", Err)
-	ErrHeaderInvalid     = fmt.Errorf("%w header invalid", Err)
+	ErrInvalidHeader     = fmt.Errorf("%w invalid header", Err)
 )
 
 // Header represents a Cryptdatum header. It contains metadata about the data
@@ -168,14 +168,9 @@ func HasValidHeader(data []byte) bool {
 
 	flags := DatumFlag(binary.LittleEndian.Uint64(data[6:14]))
 
-	// retuirn fast if data is compromized
-	if flags&DatumCompromised != 0 {
+	// retuirn fast if data is compromized or DatumDraft
+	if flags&DatumCompromised != 0 || flags&DatumDraft != 0 {
 		return false
-	}
-
-	// break here if DatumDraft is set
-	if flags&DatumDraft != 0 {
-		return true
 	}
 
 	// If it was not a draft it must have timestamp
@@ -257,7 +252,7 @@ func DecodeHeader(r io.Reader) (header Header, err error) {
 		return Header{}, ErrUnsupportedFormat
 	}
 	if !HasValidHeader(headb) {
-		return Header{}, ErrHeaderInvalid
+		return Header{}, ErrInvalidHeader
 	}
 
 	header.Version = binary.LittleEndian.Uint16(headb[4:6])

@@ -78,7 +78,7 @@ func cmdFileHasValidHeader(file string) {
 		exit(false, cryptdatum.ErrUnsupportedFormat)
 	}
 	if !cryptdatum.HasValidHeader(headb) {
-		exit(false, cryptdatum.ErrHeaderInvalid)
+		exit(false, cryptdatum.ErrInvalidHeader)
 	}
 	os.Exit(0)
 }

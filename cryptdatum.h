@@ -12,7 +12,7 @@
  * @author Marko Kungla
  * @copyright Copyright (c) 2022, The howijd.network Authors
  *
- * @see https://github.com/howijd
+ * @see https://github.com/howijd/cryptdatum
  */
 #ifndef CRYPTDATUM_H
 #define CRYPTDATUM_H
@@ -33,7 +33,7 @@ extern "C" {
  * memory for a Cryptdatum header, or to check the size of a Cryptdatum header
  * that has been read from a stream.
  */
-static const size_t CDT_HEADER_SIZE = 80;
+static const size_t CDT_HEADER_SIZE = 64;
 
 /**
  * @brief Current version of the Cryptdatum format
@@ -59,9 +59,7 @@ static const uint8_t CDT_VERSION = 1;
  * headers. If the magic number field in a Cryptdatum header does not match
  * this value, the header should be considered invalid.
  */
-static const uint8_t CDT_MAGIC[] = {
-  0xA7, 0xF6, 0xE5, 0xD4, 0xC3, 0xB2, 0xA1, 0xE1
-};
+static const uint8_t CDT_MAGIC[] = { 0xA7, 0xF6, 0xE5, 0xD4 };
 
 /**
  * @brief Delimiter for Cryptdatum headers
@@ -70,9 +68,12 @@ static const uint8_t CDT_MAGIC[] = {
  * Cryptdatum header. If the delimiter field in a Cryptdatum header does not
  * match this value, the header should be considered invalid.
  */
-static const uint8_t CDT_DELIMITER[] = {
-  0xC8, 0xB7, 0xA6, 0xE5, 0xD4, 0xC3, 0xB2, 0xF1
-};
+static const uint8_t CDT_DELIMITER[] = { 0xA6, 0xE5 };
+
+/**
+ * @brief this the minimum possible value for Timestamp header field.
+*/
+#define CDT_MAGIC_DATE 1652155382000000001
 
 typedef enum uint64_t{
   CTD_DATUM_INVALID = (1 << 0),
@@ -84,9 +85,11 @@ typedef enum uint64_t{
   CDT_DATUM_ENCRYPTED = (1 << 6),
   CDT_DATUM_EXTRACTABLE = (1 << 7),
   CDT_DATUM_SIGNED = (1 << 8),
-  CDT_DATUM_STREAMABLE = (1 << 9),
-  CDT_DATUM_CUSTOM = (1 << 10),
-  CDT_DATUM_COMPROMISED = (1 << 11)
+  CDT_DATUM_CHUNKED = (1 << 9),
+  CDT_DATUM_METADATA = (1 << 10),
+  CDT_DATUM_COMPROMISED = (1 << 11),
+  CDT_DATUM_BIG_ENDIAN = (1 << 12),
+  CDT_DATUM_NETWORK = (1 << 13)
 } cdt_datum_flags_t;
 
 #define _cdt_create_errors(error) \
@@ -94,7 +97,7 @@ typedef enum uint64_t{
         error(CDT_ERROR)  \
         error(CDT_ERROR_IO)   \
         error(CDT_ERROR_EOF)  \
-        error(CDT_ERROR_NO_HEADER)  \
+        error(CDT_ERROR_UNSUPPORTED_FORMAT)  \
         error(CDT_ERROR_INVALID_HEADER)  \
 
 #define _cdt_generate_enum_value(ENUM) ENUM,
@@ -116,20 +119,21 @@ static const char *CDT_ERR_STR[] = {
  */
 typedef struct
 {
-  uint8_t _magic[8];                 /**< Magic number */
-  uint16_t version;                 /**< Version number */
-  cdt_datum_flags_t flags;          /**< Flags */
-  uint64_t timestamp;               /**< Timestamp (nanoseconds) */
-  uint32_t opc;                     /**< Operation counter */
-  uint64_t checksum;                /**< Checksum */
+  uint8_t _magic[8];                /**< Magic number */
+  uint16_t version;                 /**< Version indicates the version of the Cryptdatum format. */
+  cdt_datum_flags_t flags;          /**< Cryptdatum format features flags to indicate which Cryptdatum features are used. */
+  uint64_t timestamp;               /**< Timestamp is Unix timestamp in nanoseconds, */
+  uint32_t opc;                     /**< OPC Operation Counter - Unique operation ID for the data. */
+  uint16_t chunk_size;              /**< ChunkSize in kilobytes if DatumChunked is enabled */
+  uint32_t network_id;              /**< NetworkID identifes the source network of the payload. When 0 no network is specified. */
   size_t size;                      /**< Total size (including header and signature) */
-  uint16_t compression_alg;        /**< Compression algorithm */
-  uint16_t encryption_alg;         /**< Encryption algorithm */
-  uint16_t signature_type;          /**< Signature type */
-  uint32_t signature_size;          /**< Signature size */
-  char file_ext[9];                 /**< File Extension  */
-  uint8_t custom[8];                /**< Custom */
-  uint8_t _delimiter[8];             /**< Delimiter */
+  uint64_t checksum;                /**< Checksum */
+  uint16_t compression;             /**< Compression indicates the compression algorithm used, if any. */
+  uint16_t encryption;              /**< Encryption indicates the encryption algorithm used, if any. */
+  uint16_t signature_type;          /**< SignatureType indicates the signature type helping implementations to identify how the signature should be verified. */
+  size_t signature_size;            /**< SignatureSize indicates the size of the signature, if any. */
+  uint16_t metadata_spec;           /**< MetadataSpec is identifer which indentifies metadata format used if any is used. */
+  size_t metadata_size;             /**< Metadata size. */
 } cdt_header_t;
 
 /**
