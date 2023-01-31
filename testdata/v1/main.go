@@ -53,7 +53,7 @@ func createValidMinimalHeader() (string, error) {
 }
 
 func createValidFullFeaturedHeader() (string, error) {
-	const name = "valid-full-featured-header-with-empty-chunk.cdt"
+	const name = "valid-full-featured-header.cdt"
 	var header [64]byte
 	// Set Magic
 	copy(header[0:4], magic[:])

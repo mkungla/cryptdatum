@@ -73,6 +73,28 @@ void test_spec_V1_has_valid_header_valid_minimal_header()
   assert(result == 1);
 }
 
+void test_spec_V1_has_valid_header_valid_full_featured_header()
+{
+  FILE *f = fopen("testdata/v1/valid-full-featured-header.cdt", "r");
+  if (!f) {
+    fprintf(stderr, "error: failed to open file\n");
+    return;
+  }
+  // Allocate a buffer to hold the header
+  uint8_t *header = malloc(CDT_HEADER_SIZE);
+  if (!header) {
+    fprintf(stderr, "error: failed to allocate memory\n");
+    fclose(f);
+    return;
+  }
+  // Read the header into the buffer
+  size_t bytes_read = fread(header, 1, CDT_HEADER_SIZE, f);
+  fclose(f);
+  int result = has_valid_header(header);
+  free(header);
+  assert(result == 1);
+}
+
 int main(int argc, char *argv[])
 {
   test_has_valid_header_magic();

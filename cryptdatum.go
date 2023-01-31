@@ -169,8 +169,12 @@ func HasValidHeader(data []byte) bool {
 	flags := DatumFlag(binary.LittleEndian.Uint64(data[6:14]))
 
 	// retuirn fast if data is compromized or DatumDraft
-	if flags&DatumCompromised != 0 || flags&DatumDraft != 0 {
+	if flags&DatumCompromised != 0 {
 		return false
+	}
+
+	if flags&DatumDraft != 0 {
+		return true
 	}
 
 	// If it was not a draft it must have timestamp

@@ -44,7 +44,10 @@ int has_valid_header(const uint8_t *data)
 
   // break here if CDT_DATUM_DRAFT or CDT_DATUM_COMPROMISED is set
   uint64_t flags = le64toh(*((uint64_t *)(data + 6)));
-  if (flags & CDT_DATUM_DRAFT || flags & CDT_DATUM_COMPROMISED) {
+  if (flags & CDT_DATUM_COMPROMISED) {
+    return false;
+  }
+  if (flags & CDT_DATUM_DRAFT) {
     return true;
   }
 
@@ -109,38 +112,35 @@ int has_valid_header(const uint8_t *data)
 
 cdt_error_t decode_header(cdt_reader_fn read, void* source, cdt_header_t* header)
 {
-  // // Allocate a buffer to hold the header
-  // uint8_t *headerb = malloc(CDT_HEADER_SIZE);
-  // size_t bytes_read = read(headerb, 1, CDT_HEADER_SIZE, source);
-  // if (bytes_read < CDT_HEADER_SIZE) {
-  //   free(headerb);
-  //   return CDT_ERROR_IO;
-  // }
+  // Allocate a buffer to hold the header
+  uint8_t *headerb = malloc(CDT_HEADER_SIZE);
+  size_t bytes_read = read(headerb, 1, CDT_HEADER_SIZE, source);
+  if (bytes_read < CDT_HEADER_SIZE) {
+    free(headerb);
+    return CDT_ERROR_IO;
+  }
 
-  // if (has_header(headerb) != 1) {
-  //   return CDT_ERROR_NO_HEADER;
-  // }
+  if (has_header(headerb) != 1) {
+    return CDT_ERROR_UNSUPPORTED_FORMAT;
+  }
 
-  // // Parse the header
-  // memcpy(header->_magic, headerb, 8);
-  // header->version = le16toh(*((uint16_t*)(headerb + 8)));
-  // header->flags = le64toh(*((uint64_t*)(headerb + 10)));
-  // header->timestamp = le64toh(*((uint64_t*)(headerb + 18)));
-  // header->opc = le32toh(*((uint32_t*)(headerb + 26)));
-  // header->checksum = le64toh(*((uint64_t*)(headerb + 30)));
-  // header->size = le64toh(*((uint64_t*)(headerb + 38)));
-  // header->compression_alg = le16toh(*((uint16_t*)(headerb + 46)));
-  // header->encryption_alg = le16toh(*((uint16_t*)(headerb + 48)));
-  // header->signature_type = le16toh(*((uint16_t*)(headerb + 50)));
-  // header->signature_size = le32toh(*((uint32_t*)(headerb + 52)));
-  // memcpy(header->file_ext, headerb + 56, 8);
-  // // Read the file_ext field directly into the file_ext field in the cdt_header_t struct
-  // read(header->file_ext, 1, 8, source);
-  // // Make sure the file_ext field is null-terminated
-  // header->file_ext[8] = '\0';
-  // memcpy(header->custom, headerb + 64, 8);
-  // memcpy(header->_delimiter, headerb + 72, 8);
-  // free(headerb);
+  // Parse the header
+  header->version = le16toh(*((uint16_t*)(headerb + 4)));
+  header->flags = le64toh(*((uint64_t*)(headerb + 6)));
+  header->timestamp = le64toh(*((uint64_t*)(headerb + 14)));
+  header->opc = le32toh(*((uint32_t*)(headerb + 22)));
+  header->chunk_size = le16toh(*((size_t*)(headerb + 26)));
+  header->network_id = le32toh(*((uint32_t*)(headerb + 28)));
+  header->size = le64toh(*((uint64_t*)(headerb + 32)));
+  header->checksum = le64toh(*((uint64_t*)(headerb + 40)));
+  header->compression = le16toh(*((uint16_t*)(headerb + 48)));
+  header->encryption = le16toh(*((uint16_t*)(headerb + 50)));
+  header->signature_type = le16toh(*((uint16_t*)(headerb + 52)));
+  header->signature_size = le16toh(*((size_t*)(headerb + 54)));
+  header->metadata_spec = le16toh(*((uint16_t*)(headerb + 56)));
+  header->metadata_size = le32toh(*((size_t*)(headerb + 58)));
+  free(headerb);
+
   return CDT_ERROR_NONE;
 }
 

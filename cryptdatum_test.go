@@ -524,7 +524,7 @@ func TestSpecV1_DecodeHeader_ValidMinimalHeader(t *testing.T) {
 }
 
 func TestSpecV1_DecodeHeader_ValidFullFeaturedHeader(t *testing.T) {
-	head, err := os.Open("testdata/v1/valid-full-featured-header-with-empty-chunk.cdt")
+	head, err := os.Open("testdata/v1/valid-full-featured-header.cdt")
 	if err != nil {
 		t.Error(err)
 	}
