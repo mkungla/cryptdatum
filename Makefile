@@ -89,7 +89,7 @@ endif # ifneq ($(CDTBUILD_OUTPUT),)
 CDT_BUILD_BIN_DIR = $(CDT_BUILD_DIR)/bin
 CDT_BUILD_TEST_DIR = $(CDT_BUILD_DIR)/tests
 CDT_BUILD_LIB_DIR = $(CDT_BUILD_DIR)/lib
-CDT_BENCH_DIR = $(CDT_SRC_DIR)/bench
+CDT_BENCH_DIR = $(CDT_SRC_DIR)/tests/bench
 CDT_SRC_DIR := $(realpath $(dir $(this-makefile)))
 CDT_CMD_DIR := $(CDT_SRC_DIR)/cmd
 CDT_TESTDATA_DIR = ${CDT_SRC_DIR}/tests/spec/testdata
@@ -100,6 +100,7 @@ CDT_C_BIN = $(CDT_BUILD_BIN_DIR)/cryptdatum-c
 CDT_GO_BIN = $(CDT_BUILD_BIN_DIR)/cryptdatum-go
 # RUST
 CDT_RUST_LIB = $(CDT_BUILD_LIB_DIR)/libcryptdatum.rlib
+CDT_RUST_BIN = $(CDT_BUILD_BIN_DIR)/cryptdatum-rust
 
 ifneq ($(words $(subst :, ,$(CDT_SRC_DIR))), 1)
 $(error source directory cannot contain spaces or colons)
@@ -198,9 +199,17 @@ test-go: bin-go
 	@echo 'TEST GO DONE'
 
 PHONY += test-rust
-test-rust:
+test-rust: bin-rust
+	@echo 'TEST RUST RUNNING'
 	@cargo test
-
+	$(call test_bin_cmd_exit_code, $(CDT_RUST_BIN), file-has-header, $(CDT_TESTDATA_DIR)/v1/invalid-header-full-featured.cdt,0)
+	$(call test_bin_cmd_exit_code, $(CDT_RUST_BIN), file-has-header, $(CDT_TESTDATA_DIR)/v1/invalid-header-full-featured.ct,1)
+	$(call test_bin_cmd_exit_code, $(CDT_RUST_BIN), file-has-header, $(CDT_TESTDATA_DIR)/v1/valid-header-full-featured.cdt,0)
+	$(call test_bin_cmd_exit_code, $(CDT_RUST_BIN), file-has-header, $(CDT_TESTDATA_DIR)/v1/valid-header-minimal.cdt,0)
+	$(call test_bin_cmd_exit_code, $(CDT_RUST_BIN), file-has-valid-header, $(CDT_TESTDATA_DIR)/v1/invalid-header-full-featured.cdt,1)
+	$(call test_bin_cmd_exit_code, $(CDT_RUST_BIN), file-has-valid-header, $(CDT_TESTDATA_DIR)/v1/valid-header-full-featured.cdt,0)
+	$(call test_bin_cmd_exit_code, $(CDT_RUST_BIN), file-has-valid-header, $(CDT_TESTDATA_DIR)/v1/valid-header-minimal.cdt,0)
+	@echo 'TEST RUST DONE'
 ####################
 # BENCHMARKS
 ####################

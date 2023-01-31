@@ -24,7 +24,7 @@ class Benchmark:
     self.benchdir = os.path.abspath(os.path.join(os.path.dirname(__file__), "../"))
     log.debug("benchdir: %s", self.benchdir)
 
-    self.libdir = os.path.abspath(os.path.join(self.benchdir, "../"))
+    self.libdir = os.path.abspath(os.path.join(self.benchdir, "../../"))
     log.debug("libdir: %s", self.libdir)
 
     self.bindir = os.path.abspath(os.path.join(self.libdir, "build/bin"))
@@ -72,7 +72,7 @@ class Benchmark:
         ] + args,
         stdout=subprocess.PIPE,
         stderr=subprocess.STDOUT,
-         encoding="utf-8",
+        encoding="utf-8",
       )
       # pid = bench.pid
       self.log.info("cmd: %s", ' '.join(bench.args))

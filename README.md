@@ -554,7 +554,7 @@ It is important to note that this function only validates the header usage. It d
 
 | | |
 | --- | --- |
-| ***Figure 1.** Performing minimal check to verify is external file containing Cryptdatum header* | ***Figure 2.** Performing minimal check to verify is external file containing valid Cryptdatum header* |
+| ***Figure 1.** Performing minimal check to verify is external file containing Cryptdatum header* | ***Figure 2.** Performing full check to verify is external file containing valid Cryptdatum header* |
 | ![Verify valid header](docs/bench-file-has-header.svg) | ![Verify valid header](docs/bench-file-has-valid-header.svg) |
-| ***Figure 3.** Print basic file info* | |
-| ![File Info](docs/bench-file-info.svg) | |
+| ***Figure 3.** Performing full check to verify is external file containing invalid Cryptdatum header* | ***Figure 4.** Print basic file info* |
+| ![Verify invalid header](docs/bench-file-has-invalid-header.svg) | ![File Info](docs/bench-file-info.svg) |

@@ -30,16 +30,9 @@ void print_header(cdt_header_t* header) {
   char created[_SIZE_BUF_LEN];
   struct tm tm;
   time_t t = (time_t)(header->timestamp / 1000000000);
-  localtime_r(&t, &tm);
+  gmtime_r(&t, &tm);
   strftime(created, sizeof(created), "%Y-%m-%dT%H:%M:%S", &tm);
-  snprintf(created + strlen(created), sizeof(created) - strlen(created), ".%09ld", header->timestamp % 1000000000);
-
-  int offset = tm.tm_gmtoff / 3600;
-  int offset_min = abs(tm.tm_gmtoff / 60) % 60;
-
-  char offset_str[10];
-  snprintf(offset_str, sizeof(offset_str), "%+03d:%02d", offset, offset_min);
-  strcat(created, offset_str);
+  snprintf(created + strlen(created), sizeof(created) - strlen(created), ".%09ldZ", header->timestamp % 1000000000);
 
   // SIZE
   char datumsize[_SIZE_BUF_LEN];
@@ -133,20 +126,41 @@ int _cmd_file_has_valid_header(char *filename)
   int exitcode = 0;
 
   // Check that we read the full header
-  if (bytes_read < CDT_HEADER_SIZE || has_header(headerb) != 1) {
+  if (bytes_read < CDT_HEADER_SIZE || has_header(headerb) != true) {
     if (VERBOSE) fprintf(stderr, "%s(%d)\n", CDT_ERR_STR[CDT_ERROR_UNSUPPORTED_FORMAT], CDT_ERROR_UNSUPPORTED_FORMAT);
     exitcode = 1;
   }
-  if (exitcode == 0 && has_valid_header(headerb) != 1) {
+  if (exitcode == 0 && has_valid_header(headerb) != true) {
     if (VERBOSE) fprintf(stderr, "%s(%d)\n", CDT_ERR_STR[CDT_ERROR_INVALID_HEADER], CDT_ERROR_INVALID_HEADER);
     exitcode = 1;
   }
 
   free(headerb);
   return exitcode;
-  return 0;
 }
 
+int _cmd_file_has_invalid_header(char *filename)
+{
+  FILE *f = fopen(filename, "r");
+  if (!f) {
+    fprintf(stderr, "%s(%d): failed to open file\n", CDT_ERR_STR[CDT_ERROR_IO], CDT_ERROR_IO);
+    return 1;
+  }
+  // Allocate a buffer to hold the header
+  uint8_t *headerb = malloc(CDT_HEADER_SIZE);
+  if (!headerb) {
+    fprintf(stderr, "%s(%d): failed to allocate memory\n", CDT_ERR_STR[CDT_ERROR_IO], CDT_ERROR_IO);
+    fclose(f);
+    return 1;
+  }
+  // Read the header into the buffer
+  size_t bytes_read = fread(headerb, 1, CDT_HEADER_SIZE, f);
+  fclose(f);
+
+  int exitcode = has_valid_header(headerb);
+  free(headerb);
+  return exitcode;
+}
 
 int _cmd_file_info(char *filename)
 {
@@ -188,6 +202,8 @@ int main(int argc, char *argv[])
     return _cmd_file_has_header(argv[optind+1]);
   } else if (strcmp(argv[optind], "file-has-valid-header") == 0) {
     return _cmd_file_has_valid_header(argv[optind+1]);
+  } else if (strcmp(argv[optind], "file-has-invalid-header") == 0) {
+    return _cmd_file_has_invalid_header(argv[optind+1]);
   } else if (strcmp(argv[optind], "file-info") == 0) {
     return _cmd_file_info(argv[optind+1]);
   } else {

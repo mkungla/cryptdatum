@@ -32,6 +32,8 @@ func main() {
 		cmdFileHasHeader(args[1])
 	case "file-has-valid-header":
 		cmdFileHasValidHeader(args[1])
+	case "file-has-invalid-header":
+		cmdFileHasInvalidHeader(args[1])
 	case "file-info":
 		cmdFileInfo(args[1])
 	default:
@@ -83,6 +85,27 @@ func cmdFileHasValidHeader(file string) {
 	os.Exit(0)
 }
 
+// Useful when looping over invalid file set
+// and exit with status 1 when valid file is within the set.
+func cmdFileHasInvalidHeader(file string) {
+	ctd, err := os.Open(file)
+	if err != nil {
+		exit(true, fmt.Errorf("%w: %s", cryptdatum.ErrIO, err.Error()))
+	}
+	defer ctd.Close()
+	headb := make([]byte, cryptdatum.HeaderSize)
+
+	if _, err := ctd.Read(headb); err != nil && !errors.Is(err, io.EOF) {
+		// exit(false, err)
+		os.Exit(0)
+	}
+	if cryptdatum.HasValidHeader(headb) {
+		// exit(false, cryptdatum.ErrInvalidHeader)
+		os.Exit(1)
+	}
+	os.Exit(0)
+}
+
 func cmdFileInfo(file string) {
 	ctd, err := os.Open(file)
 	if err != nil {
@@ -117,7 +140,7 @@ func printHeader(header cryptdatum.Header) {
 	datumsize := prettySize(header.Size)
 
 	fmt.Printf("+-------------------+-----------------------------------------+------------------------------------+\n")
-	fmt.Printf("| CRYPTDATUM        | SIZE: %-23s | CREATED: %35s | \n", datumsize, header.Time().Format(time.RFC3339Nano))
+	fmt.Printf("| CRYPTDATUM        | SIZE: %-23s | CREATED: %35s | \n", datumsize, cryptdatum.Time(header.Timestamp).UTC().Format(time.RFC3339Nano))
 	fmt.Printf("+-------------------+----------+------------------------------+-------------+----------------------+\n")
 	fmt.Printf("| Field             | Size (B) | Description                  | Type        | Value                |\n")
 	fmt.Printf("+-------------------+----------+------------------------------+-------------+----------------------+\n")

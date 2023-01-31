@@ -21,6 +21,7 @@ fn main() -> Result<()> {
   match command.as_str() {
       "file-has-header" => cmd_file_has_header(filepath)?,
       "file-has-valid-header" => cmd_file_has_valid_header(filepath)?,
+      "file-has-invalid-header" => cmd_file_has_invalid_header(filepath)?,
       "file-info" => cmd_file_info(filepath)?,
       // "file-info" => cmd_file_info(filepath)?,
       _ => {
@@ -58,6 +59,18 @@ fn cmd_file_has_valid_header(filepath: &str) -> Result<()> {
   Ok(())
 }
 
+fn cmd_file_has_invalid_header(filepath: &str) -> Result<()> {
+  let mut ctd = File::open(filepath)?;
+  let mut headb = [0; cryptdatum::HEADER_SIZE];
+
+  ctd.read_exact(&mut headb)?;
+
+  if has_valid_header(&headb) {
+    exit(1);
+  }
+  Ok(())
+}
+
 fn cmd_file_info(filepath: &str) -> Result<()> {
   let mut ctd = File::open(filepath)?;
   let header = decode_header(&mut ctd)?;
@@ -89,33 +102,41 @@ fn print_header(header: Header) {
   let created = timestamp::format("%Y-%m-%dT%H:%M:%S%nZ", header.timestamp);
   let datumsize = pretty_size(header.size);
 
-  println!("+--------------+------------+-----------------------------+-------------------+---------------------------------+");
-  println!("| CRYPTDATUM   | SIZE: {:>34} | CREATED:{:>43} |", datumsize, created);
-  println!("+--------------+------------+-----------------------------+-------------------+---------------------------------+");
-  println!("| Version      | 2          | Version number              | uint16            | {:<31} |", header.version);
-  println!("| Flags        | 8          | Flags                       | uint64            | {:<31} |", header.flags);
-  println!("| Timestamp    | 8          | Timestamp                   | uint64            | {:<31} |", header.timestamp);
-  println!("| OPC          | 4          | Operation Counter           | uint32            | {:<31} |", header.opc);
-  println!("| Checksum     | 8          | Checksum                    | uint64            | {:<31} |", header.checksum);
-  println!("| Size         | 8          | Total size                  | uint64            | {:<31} |", header.size);
-  println!("| Comp. Alg.   | 2          | Compression algorithm       | uint16            | {:<31} |", header.compression_alg);
-  println!("| Encrypt. Alg | 2          | Encryption algorithm        | uint16            | {:<31} |", header.encryption_alg);
-  println!("| Sign. Type   | 2          | Signature type              | uint16            | {:<31} |", header.signature_type);
-  println!("| Sign. Size   | 4          | Signature size              | uint32            | {:<31} |", header.signature_size);
-  println!("| File Ext.    | 8          | File extension              | char[8]           | {:<31} |", header.file_ext);
-  println!("| Custom       | 8          | Custom                      | uint8[8]          | {:03} {:03} {:03} {:03} {:03} {:03} {:03} {:03} |",
-    header.custom[0], header.custom[1], header.custom[2], header.custom[3],
-    header.custom[4], header.custom[5], header.custom[6], header.custom[7]);
-  println!("+--------------+------------+----------------------------+--------------------+---------------------------------+");
-  println!("| FLAGS                                                                                                         |");
-  println!("+------------+--------+-------------+--------+--------------+--------+------------------------------------------+");
-  println!("| Invalid    | {:<6} | OPC         | {:<6} | Signed       | {:<6} |                                          |",
-    bool_str(header.flags & DatumFlag::DatumInvalid), bool_str(header.flags & DatumFlag::DatumOPC), bool_str(header.flags & DatumFlag::DatumSigned));
-  println!("| Draft      | {:<6} | Compressed  | {:<6} | Streamable   | {:<6} |                                          |",
-    bool_str(header.flags & DatumFlag::DatumDraft), bool_str(header.flags & DatumFlag::DatumCompressed), bool_str(header.flags & DatumFlag::DatumStreamable));
-  println!("| Empty      | {:<6} | Encrypted   | {:<6} | Custom       | {:<6} |                                          |",
-    bool_str(header.flags & DatumFlag::DatumEmpty), bool_str(header.flags & DatumFlag::DatumEncrypted), bool_str(header.flags & DatumFlag::DatumCustom));
-  println!("| Checksum   | {:<6} | Extractable | {:<6} | Compromised  | {:<6} |                                          |",
-    bool_str(header.flags & DatumFlag::DatumChecksum), bool_str(header.flags & DatumFlag::DatumExtractable), bool_str(header.flags & DatumFlag::DatumCompromised));
-  println!("+------------+--------+-------------+--------+--------------+--------+------------------------------------------+");
+  print!("+-------------------+-----------------------------------------+------------------------------------+\n");
+  print!("| CRYPTDATUM        | SIZE: {:>23} | CREATED: {:>35} | \n", datumsize, created);
+	print!("+-------------------+----------+------------------------------+-------------+----------------------+\n");
+	print!("| Field             | Size (B) | Description                  | Type        | Value                |\n");
+	print!("+-------------------+----------+------------------------------+-------------+----------------------+\n");
+	print!("| VERSION ID        | 2        | Version number               | 16-bit uint | {:<20} |\n", header.version);
+	print!("| FLAGS             | 8        | Flags                        | 64-bit uint | {:<20} |\n", 0);
+	print!("| TIMESTAMP         | 8        | Timestamp                    | 64-bit uint | {:<20} |\n", header.timestamp);
+	print!("| OPERATION COUNTER | 4        | Operation Counter            | 32-bit uint | {:<20} |\n", header.opc);
+	print!("| CHUNK SIZE        | 8        | Data chunk size              | 16-bit uint | {:<20} |\n", header.chunk_size);
+	print!("| NETWORK ID        | 8        | Network ID                   | 32-bit uint | {:<20} |\n", header.network_id);
+	print!("| SIZE              | 8        | Total payload size           | 64-bit uint | {:<20} |\n", header.size);
+	print!("| CHECKSUM          | 8        | Datum checksum               | 64-bit uint | {:<20} |\n", header.checksum);
+	print!("| COMPRESSION ALGO. | 2        | Compression algorithm        | 16-bit uint | {:<20} |\n", header.compression);
+	print!("| ENCRYPTION ALGO.  | 2        | Encryption algorithm         | 16-bit uint | {:<20} |\n", header.encryption);
+	print!("| SIGNATURE TYPE    | 2        | Signature type               | 16-bit uint | {:<20} |\n", header.signature_type);
+	print!("| SIGNATURE SIZE    | 2        | Signature size               | 16-bit uint | {:<20} |\n", header.signature_size);
+	print!("| METADATA SPEC     | 2        | Metadata specification       | 16-bit uint | {:<20} |\n", header.metadata_spec);
+	print!("| MEATADATA SIZE    | 4        | Metadata size                | 32-bit uint | {:<20} |\n", header.metadata_size);
+	print!("+-------------------+----------+------------------------------+-------------+----------------------+\n");
+	print!("| DATUM FLAGS                  | Bits                         | Flag bit is set                    |\n");
+	print!("+------------------------------+-------------------------------------------------------------------+\n");
+	print!("| DATUM INVALID                | 1                            | {:<5}                              |\n", bool_str(header.flags & DatumFlag::DatumInvalid));
+	print!("| DATUM DRAFT                  | 2                            | {:<5}                              |\n", bool_str(header.flags & DatumFlag::DatumDraft));
+	print!("| DATUM EMPTY                  | 4                            | {:<5}                              |\n", bool_str(header.flags & DatumFlag::DatumEmpty));
+	print!("| DATUM CHECKSUM               | 8                            | {:<5}                              |\n", bool_str(header.flags & DatumFlag::DatumChecksum));
+	print!("| DATUM OPC                    | 16                           | {:<5}                              |\n", bool_str(header.flags & DatumFlag::DatumOPC));
+	print!("| DATUM COMPRESSED             | 32                           | {:<5}                              |\n", bool_str(header.flags & DatumFlag::DatumCompressed));
+	print!("| DATUM ENCRYPTED              | 64                           | {:<5}                              |\n", bool_str(header.flags & DatumFlag::DatumEncrypted));
+	print!("| DATUM EXTRACTABLE            | 128                          | {:<5}                              |\n", bool_str(header.flags & DatumFlag::DatumExtractable));
+	print!("| DATUM SIGNED                 | 256                          | {:<5}                              |\n", bool_str(header.flags & DatumFlag::DatumSigned));
+	print!("| DATUM CHUNKED                | 512                          | {:<5}                              |\n", bool_str(header.flags & DatumFlag::DatumChunked));
+	print!("| DATUM METADATA               | 1024                         | {:<5}                              |\n", bool_str(header.flags & DatumFlag::DatumMetadata));
+	print!("| DATUM COMPROMISED            | 2048                         | {:<5}                              |\n", bool_str(header.flags & DatumFlag::DatumCompromised));
+	print!("| DATUM BIG ENDIAN             | 4096                         | {:<5}                              |\n", bool_str(header.flags & DatumFlag::DatumBigEndian));
+	print!("| DATUM DATUM NETWORK          | 8192                         | {:<5}                              |\n", bool_str(header.flags & DatumFlag::DatumNetwork));
+	print!("+------------------------------+-------------------------------------------------------------------+\n");
 }

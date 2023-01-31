@@ -95,7 +95,7 @@ int has_valid_header(const uint8_t *data)
 
   // CDT_DATUM_SIGNED then Signature Type must be also set
   // however value of the signature Size may depend on Signature Type
-  if ((flags & CDT_DATUM_SIGNED && le16toh(*((uint16_t *)(data + 52))) == 0) || (!(flags & CDT_DATUM_SIGNED) && le16toh(*((uint16_t *)(data + 52))) > 0)) {
+  if ((flags & CDT_DATUM_SIGNED && le16toh(*((uint16_t *)(data + 52))) == 0) || (!(flags & CDT_DATUM_SIGNED) && (le16toh(*((uint16_t *)(data + 52))) > 0 || le16toh(*((uint16_t *)(data + 54))) > 0))) {
     return false;
   }
 
@@ -122,6 +122,9 @@ cdt_error_t decode_header(cdt_reader_fn read, void* source, cdt_header_t* header
 
   if (has_header(headerb) != 1) {
     return CDT_ERROR_UNSUPPORTED_FORMAT;
+  }
+  if (has_valid_header(headerb) != 1) {
+    return CDT_ERROR_INVALID_HEADER;
   }
 
   // Parse the header

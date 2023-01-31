@@ -26,23 +26,25 @@ pub const MIN_VERSION: u16 = 1;
 /// used by implementations of the Cryptdatum library to allocate sufficient
 /// memory for a Cryptdatum header, or to check the size of a Cryptdatum header
 /// that has been read from a stream.
-pub const HEADER_SIZE: usize = 80;
+pub const HEADER_SIZE: usize = 64;
 
 /// Magic number for Cryptdatum headers
 ///
 /// This constant defines the magic number that is used to identify Cryptdatum
 /// headers. If the magic number field in a Cryptdatum header does not match
 /// this value, the header should be considered invalid.
-pub const MAGIC: [u8; 8] = [0xA7, 0xF6, 0xE5, 0xD4, 0xC3, 0xB2, 0xA1, 0xE1];
+pub const MAGIC: [u8; 4] = [0xA7, 0xF6, 0xE5, 0xD4];
 
 /// Delimiter for Cryptdatum headers
 ///
 /// This constant defines the delimiter that is used to mark the end of a
 /// Cryptdatum header. If the delimiter field in a Cryptdatum header does not
 /// match this value, the header should be considered invalid.
-pub const DELIMITER: [u8; 8] = [0xC8, 0xB7, 0xA6, 0xE5, 0xD4, 0xC3, 0xB2, 0xF1];
+pub const DELIMITER: [u8; 2] = [0xA6, 0xE5];
 
 const EMPTY: [u8; 8] = [0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00];
+
+// MAGIC_DATE is the minimum possible value for Timestamp header field.
 const MAGIC_DATE: u64 = 1652155382000000001;
 
 /// Structure representing a Cryptdatum header
@@ -53,20 +55,20 @@ const MAGIC_DATE: u64 = 1652155382000000001;
 /// the datum.
 #[repr(C)]
 pub struct Header {
-  magic: [u8; 8], // CRYPTDATUM_MAGIC
-  pub version: u16, // Indicates the version of the Cryptdatum
-  pub flags: u64, // Cryptdatum features enabled
+  pub version: u16, // Indicates the version of the Cryptdatu
+  pub flags: u64, // Cryptdatum format features flags to indicate which Cryptdatum features are used.
   pub timestamp: u64, // Unix timestamp in nanoseconds
   pub opc: u32, // Unique operation ID
+  pub chunk_size: u16, // Size of the chunks if data is chunked.
+  pub network_id: u32, // Identifes the source network of the payload. When 0 no network is specified.
+  pub size: u64, // Total size of the data payload.
   pub checksum: u64, // CRC64 checksum
-  pub size: u64, // Total size of the data, incl. header and optional signature
-  pub compression_alg: u16, // compression algorithm
-  pub encryption_alg: u16, // encryption algorithm
+  pub compression: u16, // compression algorithm
+  pub encryption: u16, // encryption algorithm
   pub signature_type: u16, // signature type
-  pub signature_size: u32, // signature size
-  pub file_ext: String, // File extension
-  pub custom: [u8; 8], // Custom field
-  delimiter: [u8; 8], // CRYPTDATUM_DELIMITER
+  pub signature_size: u16, // signature size
+  pub metadata_spec: u16, // metadata spec
+  pub metadata_size: u32, // metadata size
 }
 
 #[derive(Copy, Clone, Debug, Eq, PartialEq, Ord, PartialOrd)]
@@ -81,18 +83,29 @@ pub enum DatumFlag {
   DatumEncrypted = 1 << 6,
   DatumExtractable = 1 << 7,
   DatumSigned = 1 << 8,
-  DatumStreamable = 1 << 9,
-  DatumCustom = 1 << 10,
+  DatumChunked = 1 << 9,
+  DatumMetadata = 1 << 10,
   DatumCompromised = 1 << 11,
+  DatumBigEndian = 1 << 12,
+  DatumNetwork = 1 << 13,
 }
 
 impl BitAnd<DatumFlag> for u64 {
   type Output = bool;
 
   fn bitand(self, rhs: DatumFlag) -> bool {
-      self & (rhs as u64) != 0
+    self & (rhs as u64) != 0
   }
 }
+
+impl BitAnd for DatumFlag {
+  type Output = bool;
+
+  fn bitand(self, rhs: DatumFlag) -> bool {
+    self as u64 & (rhs as u64) != 0
+  }
+}
+
 
 impl From<u64> for DatumFlag {
   fn from(value: u64) -> Self {
@@ -106,9 +119,11 @@ impl From<u64> for DatumFlag {
       64 => DatumFlag::DatumEncrypted,
       128 => DatumFlag::DatumExtractable,
       256 => DatumFlag::DatumSigned,
-      512 => DatumFlag::DatumStreamable,
-      1024 => DatumFlag::DatumCustom,
+      512 => DatumFlag::DatumChunked,
+      1024 => DatumFlag::DatumMetadata,
       2048 => DatumFlag::DatumCompromised,
+      4096 => DatumFlag::DatumBigEndian,
+      8192 => DatumFlag::DatumNetwork,
       _ => todo!(),
     }
   }
@@ -124,12 +139,18 @@ pub enum ErrorType {
 #[derive(Clone, Copy, Debug, Eq, Hash, Ord, PartialEq, PartialOrd)]
 pub enum ErrorKind {
   IO,
+  EOF,
+  UnsupportedFormat,
+  InvalidHeader,
 }
 
 impl ErrorKind {
   pub fn as_str(&self) -> &str {
     match *self {
-      ErrorKind::IO => "cryptdatum I/O error"
+      ErrorKind::IO => "cryptdatum I/O error",
+      ErrorKind::EOF => "cryptdatum EOF",
+      ErrorKind::UnsupportedFormat => "cryptdatum unsupported format",
+      ErrorKind::InvalidHeader => "cryptdatum invalid header",
     }
   }
 }
@@ -183,7 +204,7 @@ pub fn has_header(data: &[u8]) -> bool {
     return false;
   }
   // check magic and delimiter
-  return data[..8].eq(&MAGIC) && data[72..80].eq(&DELIMITER);
+  return data[..4].eq(&MAGIC) && data[62..64].eq(&DELIMITER);
 }
 
 pub fn has_valid_header(data: &[u8]) -> bool {
@@ -193,79 +214,110 @@ pub fn has_valid_header(data: &[u8]) -> bool {
   }
 
   // check version is >= 1
-  let version = u16::from_le_bytes([data[8], data[9]]);
+  let version = u16::from_le_bytes([data[4], data[5]]);
   if version < VERSION {
-      return true;
+      return false;
   }
 
-  // break here if DatumDraft is set
+
   let flags = u64::from_le_bytes([
-    data[10], data[11], data[12], data[13], data[14], data[15], data[16], data[17],
+    data[6], data[7], data[8], data[9], data[10], data[11], data[12], data[13],
   ]);
 
-  if flags & DatumFlag::DatumDraft  || flags & DatumFlag::DatumCompromised  {
+  // break here if DatumDraft or DatumCompromised is set
+  if flags & DatumFlag::DatumCompromised  {
+    return false;
+  }
+  if flags & DatumFlag::DatumDraft {
     return true;
   }
 
   // It it was not a draft it must have timestamp
-  let timestamp = u64::from_le_bytes([
-    data[18], data[19], data[20], data[21], data[22], data[23], data[24], data[25],
-  ]);
-  if timestamp < MAGIC_DATE {
+  if u64::from_le_bytes([
+    data[14], data[15], data[16], data[17], data[18], data[19], data[20], data[21],
+  ]) < MAGIC_DATE {
       return false;
   }
 
   // DatumOPC is set then counter value must be gte 1
-  if flags & DatumFlag::DatumOPC {
-    let counter = u32::from_le_bytes([data[26], data[27], data[28], data[29]]);
-    if counter < 1 {
-      return false;
-    }
+  let counter = u32::from_le_bytes([data[22], data[23], data[24], data[25]]);
+  if flags & DatumFlag::DatumOPC && counter == 0 {
+    return false;
   }
-
-  // DatumChecksum Checksum must be set
-  if flags & DatumFlag::DatumChecksum  && data[30..38].eq(&EMPTY) {
+  if !(flags & DatumFlag::DatumOPC) && counter > 0 {
     return false;
   }
 
-  // Not DatumEmpty or DatumDraft
-  if flags & DatumFlag::DatumEmpty  {
-    // Size field must be set
-    let size = u64::from_le_bytes([
-      data[38], data[39], data[40], data[41], data[42], data[43], data[44], data[45],
-    ]);
-    if size < 1 {
-      return false;
-    }
-
-    // DatumCompressed compression algorithm must be set
-    if flags & DatumFlag::DatumCompressed {
-      let algorithm = u16::from_le_bytes([data[46], data[47]]);
-      if algorithm < 1 {
-          return false;
-      }
-    }
-    // DatumEncrypted encryption algorithm must be set
-    if flags & DatumFlag::DatumEncrypted {
-      let algorithm = u16::from_le_bytes([data[48], data[49]]);
-      if algorithm < 1 {
-          return false;
-      }
-    }
-
-    // DatumExtractable payl;oad can be extracted then filename must be set
-    if flags & DatumFlag::DatumExtractable && data[50..58].eq(&EMPTY) {
-      return false;
-    }
+  // DatumChunked is set then chunk size value must be gte 1
+  let chunksize = u16::from_le_bytes([data[26], data[27]]);
+  if flags & DatumFlag::DatumChunked && chunksize == 0 {
+    return false;
+  }
+  if !(flags & DatumFlag::DatumChunked) && chunksize > 0 {
+    return false;
   }
 
-  // DatumSigned then Signature Type must be also set
-  // however value of the signature Size may depend on Signature Type
-  if flags & DatumFlag::DatumSigned {
-    let signature_type = u16::from_le_bytes([data[58], data[59]]);
-    if signature_type < 1 {
-      return false;
-    }
+  // DatumNetwork is set then network id value must be gte 1
+  let networ_id = u32::from_le_bytes([data[28], data[29], data[30], data[31]]);
+  if flags & DatumFlag::DatumNetwork && networ_id == 0 {
+    return false;
+  }
+  if !(flags & DatumFlag::DatumNetwork) && networ_id > 0 {
+    return false;
+  }
+
+  // DatumEmpty is set then size value must be 0
+	// DatumEmpty is not set then size value must be gte 1
+  let size = u64::from_le_bytes([data[32], data[33], data[34], data[35], data[36], data[37], data[38], data[39]]);
+  if flags & DatumFlag::DatumEmpty && size > 0 {
+    return false;
+  }
+  if !(flags & DatumFlag::DatumEmpty) && size == 0 {
+    return false;
+  }
+
+  // DatumChecksum
+  if flags & DatumFlag::DatumChecksum  && data[40..48].eq(&EMPTY) {
+    return false;
+  }
+  if !(flags & DatumFlag::DatumChecksum) && !data[40..48].eq(&EMPTY) {
+    return false;
+  }
+
+  // DatumCompressed
+  let comprssion = u16::from_le_bytes([data[48], data[49]]);
+  if flags & DatumFlag::DatumCompressed && comprssion == 0 {
+    return false;
+  }
+  if !(flags & DatumFlag::DatumCompressed) && comprssion > 0 {
+    return false;
+  }
+  // DatumEncrypted
+  let comprssion = u16::from_le_bytes([data[50], data[51]]);
+  if flags & DatumFlag::DatumEncrypted && comprssion == 0 {
+    return false;
+  }
+  if !(flags & DatumFlag::DatumEncrypted) && comprssion > 0 {
+    return false;
+  }
+  // DatumSigned
+  let signature_type = u16::from_le_bytes([data[52], data[53]]);
+  let signature_size = u16::from_le_bytes([data[54], data[55]]);
+  if flags & DatumFlag::DatumSigned && signature_type == 0 {
+    return false;
+  }
+  if !(flags & DatumFlag::DatumSigned) && (signature_type > 0 || signature_size > 0) {
+    return false;
+  }
+
+  // DatumMetadata
+  let metadata_spec = u16::from_le_bytes([data[56], data[57]]);
+  let metadata_size = u32::from_le_bytes([data[58], data[59], data[60], data[61]]);
+  if flags & DatumFlag::DatumMetadata && metadata_spec == 0 {
+    return false;
+  }
+  if !(flags & DatumFlag::DatumMetadata) && (metadata_spec > 0 || metadata_size > 0) {
+    return false;
   }
 
   // If all checks pass, return true
@@ -279,28 +331,30 @@ pub fn decode_header<R: Read>(reader: &mut R) -> Result<Header> {
     return Err(ErrorType::Regular(ErrorKind::IO))
   }
 
-  let mut magic = [0; 8];
-  let mut custom = [0; 8];
-  let mut delimiter =  [0; 8];
-  magic.copy_from_slice(&header_buf[0..8]);
-  custom.copy_from_slice(&header_buf[64..72]);
-  delimiter.copy_from_slice(&header_buf[72..80]);
+  if !has_header(&header_buf) {
+    return Err(ErrorType::Regular(ErrorKind::UnsupportedFormat));
+  }
+  if !has_valid_header(&header_buf) {
+    return Err(ErrorType::Regular(ErrorKind::InvalidHeader));
+  }
+
+
 
   let header: Header = Header{
-    magic: magic,
-    version: u16::from_le_bytes(header_buf[8..10].try_into().unwrap()),
-    flags: u64::from_le_bytes(header_buf[10..18].try_into().unwrap()),
-    timestamp: u64::from_le_bytes(header_buf[18..26].try_into().unwrap()),
-    opc: u32::from_le_bytes(header_buf[26..30].try_into().unwrap()),
-    checksum: u64::from_le_bytes(header_buf[30..38].try_into().unwrap()),
-    size: u64::from_le_bytes(header_buf[38..46].try_into().unwrap()),
-    compression_alg: u16::from_le_bytes(header_buf[46..48].try_into().unwrap()),
-    encryption_alg: u16::from_le_bytes(header_buf[48..50].try_into().unwrap()),
-    signature_type: u16::from_le_bytes(header_buf[50..52].try_into().unwrap()),
-    signature_size: u32::from_le_bytes(header_buf[52..56].try_into(). unwrap()),
-    file_ext: std::str::from_utf8(&header_buf[56..64])?.to_owned(),
-    custom: custom,
-    delimiter: delimiter,
+    version: u16::from_le_bytes(header_buf[4..6].try_into().unwrap()),
+    flags: u64::from_le_bytes(header_buf[6..14].try_into().unwrap()),
+    timestamp: u64::from_le_bytes(header_buf[14..22].try_into().unwrap()),
+    opc: u32::from_le_bytes(header_buf[22..26].try_into().unwrap()),
+    chunk_size: u16::from_le_bytes(header_buf[26..28].try_into().unwrap()),
+    network_id: u32::from_le_bytes(header_buf[28..32].try_into().unwrap()),
+    size: u64::from_le_bytes(header_buf[32..40].try_into().unwrap()),
+    checksum: u64::from_le_bytes(header_buf[40..48].try_into().unwrap()),
+    compression: u16::from_le_bytes(header_buf[48..50].try_into().unwrap()),
+    encryption: u16::from_le_bytes(header_buf[50..52].try_into().unwrap()),
+    signature_type: u16::from_le_bytes(header_buf[52..54].try_into().unwrap()),
+    signature_size: u16::from_le_bytes(header_buf[54..56].try_into().unwrap()),
+    metadata_spec: u16::from_le_bytes(header_buf[56..58].try_into().unwrap()),
+    metadata_size: u32::from_le_bytes(header_buf[58..62].try_into().unwrap()),
   };
 
   Ok(header)
@@ -334,16 +388,16 @@ pub mod timestamp {
   /// let ts = 1234567890;
   /// let fmt = "%Y-%m-%dT%H:%M:%S%nZ";
   /// let s = format(fmt, ts);
-  /// assert_eq!(s, "1970-01-01T01:00:00.234567890Z");
+  /// assert_eq!(s, "1970-01-01T00:00:01.234567890Z");
   /// ```
   pub fn format(fmt: &str, ts: u64) -> String {
     let (secs, nsec) = div_rem(ts, 1_000_000_000);
     let days: u64 = secs / 86400;
     let (year, month, day) = get_date(days);
-
-    let hour: u8 = (secs % 60) as u8;
+    
+    let sec: u8 = (secs % 60) as u8;
     let min: u8 = ((secs / 60) % 60) as u8;
-    let sec: u8 = ((secs / 3600) % 24) as u8;
+    let hour: u8 = ((secs / 3600) % 24) as u8;
 
     let mut buf = [0; MAX_BUF_SIZE];
     let mut i = 0; // layout cursor
@@ -477,22 +531,36 @@ mod tests {
     if slice.len() < 10 {
       return;
     }
-    slice[8] = version as u8;
-    slice[9] = (version >> 8) as u8;
+    slice[4] = version as u8;
+    slice[5] = (version >> 8) as u8;
   }
 
   fn set_header_date(slice: &mut [u8], nsec: u64) {
     if slice.len() < 25 {
       return;
     }
-    slice[18] = nsec as u8;
-    slice[19] = (nsec >> 8) as u8;
-    slice[20] = (nsec >> 16) as u8;
-    slice[21] = (nsec >> 24) as u8;
-    slice[22] = (nsec >> 32) as u8;
-    slice[23] = (nsec >> 40) as u8;
-    slice[24] = (nsec >> 48) as u8;
-    slice[25] = (nsec >> 56) as u8;
+    slice[14] = nsec as u8;
+    slice[15] = (nsec >> 8) as u8;
+    slice[16] = (nsec >> 16) as u8;
+    slice[17] = (nsec >> 24) as u8;
+    slice[18] = (nsec >> 32) as u8;
+    slice[19] = (nsec >> 40) as u8;
+    slice[20] = (nsec >> 48) as u8;
+    slice[21] = (nsec >> 56) as u8;
+  }
+
+  fn set_header_flag(slice: &mut [u8], flag: u64) {
+    if slice.len() < 14 {
+      return;
+    }
+    slice[6] = flag as u8;
+    slice[7] = (flag >> 8) as u8;
+    slice[8] = (flag >> 16) as u8;
+    slice[9] = (flag >> 24) as u8;
+    slice[10] = (flag >> 32) as u8;
+    slice[11] = (flag >> 40) as u8;
+    slice[12] = (flag >> 48) as u8;
+    slice[13] = (flag >> 56) as u8;
   }
 
   #[test]
@@ -506,19 +574,20 @@ mod tests {
   fn has_valid_header_magic() {
     // Test valid magic
     let mut data = [0; HEADER_SIZE];
-    data[0..8].copy_from_slice(&MAGIC);
+    data[0..4].copy_from_slice(&MAGIC);
     set_header_version(&mut data, VERSION);
     set_header_date(&mut data, MAGIC_DATE);
+    set_header_flag(&mut data, 4);
 
 
-    data[72..80].copy_from_slice(&DELIMITER);
+    data[62..64].copy_from_slice(&DELIMITER);
     assert!(has_valid_header(&data));
 
     // Test invalid magic
     let mut data = [0; HEADER_SIZE];
     data[0] = 0x00;
     set_header_version(&mut data, VERSION);
-    data[72..80].copy_from_slice(&DELIMITER);
+    data[62..64].copy_from_slice(&DELIMITER);
     assert!(!has_valid_header(&data));
   }
 
@@ -526,9 +595,9 @@ mod tests {
   // Test invalid delimiter
   fn has_valid_header_delimiter() {
     let mut data = [0; HEADER_SIZE];
-    data[0..8].copy_from_slice(&MAGIC);
+    data[0..4].copy_from_slice(&MAGIC);
     set_header_version(&mut data, VERSION);
-    data[72] = 0x00;
+    data[62] = 0x00;
     assert!(!has_valid_header(&data));
   }
 }

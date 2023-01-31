@@ -276,6 +276,6 @@ func DecodeHeader(r io.Reader) (header Header, err error) {
 	return header, nil
 }
 
-func (h Header) Time() time.Time {
-	return time.Unix(int64(h.Timestamp/1e9), int64(h.Timestamp%1e9))
+func Time(ns uint64) time.Time {
+	return time.Unix(int64(ns/1e9), int64(ns%1e9))
 }

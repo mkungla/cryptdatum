@@ -17,8 +17,8 @@
 #ifndef CRYPTDATUM_H
 #define CRYPTDATUM_H
 
-#include <stddef.h> // size_t
-#include <stdint.h> // uint8_t
+#include <stddef.h>
+#include <stdint.h>
 #include <endian.h>
 
 /**
@@ -115,7 +115,6 @@ static const char *CDT_ERR_STR[] = {
  */
 typedef struct
 {
-  uint8_t _magic[8];                /**< Magic number */
   uint16_t version;                 /**< Version indicates the version of the Cryptdatum format. */
   cdt_datum_flags_t flags;          /**< Cryptdatum format features flags to indicate which Cryptdatum features are used. */
   uint64_t timestamp;               /**< Timestamp is Unix timestamp in nanoseconds, */

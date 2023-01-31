@@ -9,6 +9,7 @@ import (
 	"os"
 	"path/filepath"
 	"testing"
+	"time"
 
 	"github.com/howijd/cryptdatum/tests/spec"
 )
@@ -466,7 +467,7 @@ func TestSpecV1_DecodeHeader_ValidFullFeaturedHeader(t *testing.T) {
 	if h.Timestamp != 1652155382000000001 {
 		t.Errorf("expected Timestamp 1652155382000000001 got %d", h.Timestamp)
 	}
-	if h.Time().IsZero() {
+	if Time(h.Timestamp).IsZero() {
 		t.Errorf("expected time not to be zero")
 	}
 	if h.OPC != 2 {
@@ -501,5 +502,14 @@ func TestSpecV1_DecodeHeader_ValidFullFeaturedHeader(t *testing.T) {
 	}
 	if h.MetadataSize != 11 {
 		t.Errorf("expected MetadataSize 11 got %d", h.MetadataSize)
+	}
+}
+
+func TestTimestamp(t *testing.T) {
+	var in uint64 = 1234567890
+	got := Time(in).UTC().Format(time.RFC3339Nano)
+	want := "1970-01-01T00:00:01.23456789Z"
+	if got != want {
+		t.Errorf("expected Time(%d) return time.Time %s got %s", in, want, got)
 	}
 }
