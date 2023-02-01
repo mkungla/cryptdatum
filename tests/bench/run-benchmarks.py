@@ -35,6 +35,15 @@ bench.add("Rust", {
     "file-info",
   ]
 })
+bench.add("ZIG", {
+  "bin": "cryptdatum-zig",
+  "cmds": [
+    "file-has-header",
+    "file-has-valid-header",
+    "file-has-invalid-header",
+    "file-info",
+  ]
+})
 
 bench.run("File Is Crypdatum", ["file-has-header", bench.path("tests/spec/testdata/v1/valid-header-minimal.cdt")], "bench-file-has-header")
 bench.run("File Has Valid Header", ["file-has-valid-header", bench.path("tests/spec/testdata/v1/valid-header-full-featured.cdt")], "bench-file-has-valid-header")

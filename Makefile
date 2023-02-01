@@ -34,6 +34,7 @@ help:
 	@echo  '  bin-c	  		- build C cli tool'
 	@echo  '  bin-go	  	- build Go cli tool'
 	@echo  '  bin-rust	  	- build Rust cli tool'
+	@echo  '  bin-zig 	  	- build ZIG cli tool'
 	@echo  ''
 	@echo  'LIBRARIES:'
 	@echo  '  lib-rust	  	- build rust library'
@@ -42,8 +43,9 @@ help:
 	@echo  '  test		  	- run all tests'
 	@echo  '  test-c		- test C source'
 	@echo  '  test-cpp		- test C++ source'
-	@echo  '  test-rust		- test Rust source'
 	@echo  '  test-go		- test Go source'
+	@echo  '  test-rust		- test Rust source'
+	@echo  '  test-zig		- test ZIG source'
 	@echo  ''
 	@echo  'BENCHMARKS:'
 	@echo  '  bench		  	- run all benchmarks'
@@ -101,6 +103,8 @@ CDT_GO_BIN = $(CDT_BUILD_BIN_DIR)/cryptdatum-go
 # RUST
 CDT_RUST_LIB = $(CDT_BUILD_LIB_DIR)/libcryptdatum.rlib
 CDT_RUST_BIN = $(CDT_BUILD_BIN_DIR)/cryptdatum-rust
+# ZIG
+CDT_ZIG_BIN = $(CDT_BUILD_BIN_DIR)/cryptdatum-zig
 
 ifneq ($(words $(subst :, ,$(CDT_SRC_DIR))), 1)
 $(error source directory cannot contain spaces or colons)
@@ -151,6 +155,12 @@ bin-rust: lib-rust
 		-C debuginfo=0 \
 		-C opt-level=3 \
 		-o $(CDT_BUILD_BIN_DIR)/cryptdatum-rust
+
+PHONY += bin-zig
+bin-zig:
+	zig build-exe \
+		-femit-bin=$(CDT_ZIG_BIN) \
+		$(CDT_SRC_DIR)/zig/cryptdatum.zig
 
 ####################
 # LIBRARIES
@@ -210,6 +220,21 @@ test-rust: bin-rust
 	$(call test_bin_cmd_exit_code, $(CDT_RUST_BIN), file-has-valid-header, $(CDT_TESTDATA_DIR)/v1/valid-header-full-featured.cdt,0)
 	$(call test_bin_cmd_exit_code, $(CDT_RUST_BIN), file-has-valid-header, $(CDT_TESTDATA_DIR)/v1/valid-header-minimal.cdt,0)
 	@echo 'TEST RUST DONE'
+
+PHONY += test-zig
+test-zig: bin-zig
+	@echo 'TEST ZIG RUNNING'
+	zig test $(CDT_SRC_DIR)/zig/cryptdatum/cryptdatum.zig
+	zig test $(CDT_SRC_DIR)/zig/cryptdatum.zig
+	$(call test_bin_cmd_exit_code, $(CDT_ZIG_BIN), file-has-header, $(CDT_TESTDATA_DIR)/v1/invalid-header-full-featured.cdt,0)
+	$(call test_bin_cmd_exit_code, $(CDT_ZIG_BIN), file-has-header, $(CDT_TESTDATA_DIR)/v1/invalid-header-full-featured.ct,1)
+	$(call test_bin_cmd_exit_code, $(CDT_ZIG_BIN), file-has-header, $(CDT_TESTDATA_DIR)/v1/valid-header-full-featured.cdt,0)
+	$(call test_bin_cmd_exit_code, $(CDT_ZIG_BIN), file-has-header, $(CDT_TESTDATA_DIR)/v1/valid-header-minimal.cdt,0)
+	$(call test_bin_cmd_exit_code, $(CDT_ZIG_BIN), file-has-valid-header, $(CDT_TESTDATA_DIR)/v1/invalid-header-full-featured.cdt,1)
+	$(call test_bin_cmd_exit_code, $(CDT_ZIG_BIN), file-has-valid-header, $(CDT_TESTDATA_DIR)/v1/valid-header-full-featured.cdt,0)
+	$(call test_bin_cmd_exit_code, $(CDT_ZIG_BIN), file-has-valid-header, $(CDT_TESTDATA_DIR)/v1/valid-header-minimal.cdt,0)
+	@echo 'TEST ZIG DONE'
+
 ####################
 # BENCHMARKS
 ####################

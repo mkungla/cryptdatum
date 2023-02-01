@@ -364,7 +364,7 @@ pub mod timestamp {
   //! The `timestamp` module provides functions for formatting and parsing
   //! UTC nanoseconds timestamps as strings.
 
-  const MAX_BUF_SIZE: usize = 64;
+  const MAX_BUF_SIZE: usize = 32;
 
   /// Formats a UTC nanoseconds timestamp as a string using the given format string.
   ///

@@ -3,29 +3,39 @@
 // See the LICENSE file.
 
 const std = @import("std");
-const errors = std.errors;
 
 // Version is the current version of the Cryptdatum format.
 // Implementations of the Cryptdatum library should set the version field in
 // Cryptdatum headers to this value.
-const Version: u16 = 1;
+pub const Version: u16 = 1;
 
 // MinVersion is the minimum supported version of the Cryptdatum format.
 // If the version field in a Cryptdatum header is lower than this value, the
 // header should be considered invalid.
-const MinVersion: u16 = 1;
+pub const MinVersion: u16 = 1;
 
 // HeaderSize is the size of a Cryptdatum header in bytes. It can be used by
 // implementations of the Cryptdatum library to allocate sufficient memory for
 // a Cryptdatum header, or to check the size of a Cryptdatum header that has
 // been read from a stream.
-const HeaderSize: usize = 64;
+pub const HeaderSize: usize = 64;
 
 // MagicDate is date which datum can not be older. Therefore it is the minimum
 // value possible for Header.Timestamp
-const MagicDate: u64 = 1652155382000000001;
+pub const MagicDate: u64 = 1652155382000000001;
 
-const DatumFlag = enum(u64) {
+
+// Magic is the magic number used to identify Cryptdatum headers. If the magic
+// number field in a Cryptdatum header does not match this value, the header
+// should be considered invalid.
+pub const Magic = [4]u8{0xA7, 0xF6, 0xE5, 0xD4};
+
+// Delimiter is the delimiter used to mark the end of a Cryptdatum header. If
+// the delimiter field in a Cryptdatum header does not match this value, the
+// header should be considered invalid.
+pub const Delimiter = [2]u8{0xA6, 0xE5};
+
+pub const DatumFlag = enum(u64) {
   Invalid = 1 << 0,
   Draft = 1 << 1,
   Empty = 1 << 2,
@@ -42,74 +52,66 @@ const DatumFlag = enum(u64) {
   Network = 1 << 13,
 
   pub fn isSet(self: DatumFlag, flags: u64) bool {
-    return (flags & @bitCast(u64, self) != 0);
+    return (flags & @enumToInt(self) != 0);
   } 
 };
 
-// Magic is the magic number used to identify Cryptdatum headers. If the magic
-// number field in a Cryptdatum header does not match this value, the header
-// should be considered invalid.
-const Magic = [4]u8{0xA7, 0xF6, 0xE5, 0xD4};
-
-// Delimiter is the delimiter used to mark the end of a Cryptdatum header. If
-// the delimiter field in a Cryptdatum header does not match this value, the
-// header should be considered invalid.
-const Delimiter = [2]u8{0xA6, 0xE5};
-
 const empty = [8]u8{0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00};
 const empty2 = [2]u8{0x00, 0x00};
+const empty4 = [4]u8{0x00, 0x00, 0x00, 0x00};
 
-const Err = errors.newError("cryptdatum");
-const ErrIO = errors.wrap(Err, "i/o");
-const ErrEOF = errors.wrap(Err, "EOF");
-const ErrUnsupportedFormat = errors.wrap(Err, "unsupported format");
-const ErrInvalidHeader = errors.wrap(Err, "invalid header");
+const Error = error{
+    IO, // i/o
+    EOF, // EOF
+    UnsupportedFormat, // unsupported format
+    InvalidHeader, // invalid header
+};
 
-const Header = struct {
+pub const Header = struct {
   // version indicates the version of the Cryptdatum format.
-  version: u16,
+  version: u16 = 0,
 
   // Cryptdatum format features flags to indicate which Cryptdatum features are
   // used by that datum e.g whether the data is encrypted, compressed, or has
   // a checksum. has operation counter set is signed etc.
-  flags: DatumFlag,
+  flags: u64 = 0,
 
   // timestamp is Unix timestamp in nanoseconds, indicating the time when the data was created.
-  timestamp: u64,
+  timestamp: u64 = 0,
 
   // opc Operation Counter - Unique operation ID for the data.
-  opc: u32,
+  opc: u32 = 0,
 
   // chunk_size in kilobytes if DatumChunked is enabled
-  chunk_size: u16,
+  chunk_size: u16 = 0,
 
   // network_id identifes the source network of the payload. When 0 no network is specified.
-  network_id: u32,
+  network_id: u32 = 0,
 
   // Total size of the data, including the header and optional signature.
-  size: u64,
+  size: u64 = 0,
 
   // CRC64 checksum for verifying the integrity of the data.
-  checksum: u64,
+  checksum: u64 = 0,
 
   // Compression indicates the compression algorithm used, if any.
-  compression: u16,
+  compression: u16 = 0,
 
   // Encryption indicates the encryption algorithm used, if any.
-  encryption: u16,
+  encryption: u16 = 0,
 
   // SignatureType indicates the signature type helping implementations to
   // identify how the signature should be verified.
-  signature_type: u16,
+  signature_type: u16 = 0,
 
   // SignatureSize indicates the size of the signature, if any.
-  signature_size: u16,
+  signature_size: u16 = 0,
 
   // MetadataSpec is identifer which indentifies metadata format used if any is used.
-  metadata_spec: u16,
+  metadata_spec: u16 = 0,
 
   // MetadataSize
-  metadata_size: u32,
+  metadata_size: u32 = 0,
 };
 
 // hasHeader checks if the provided data contains a Cryptdatum header. It looks for specific header
@@ -166,20 +168,18 @@ pub fn hasValidHeader(data: []const u8) bool {
   }
 
   // DatumFlag.OPC is set then counter value must be gte 1
-  const opc: u32 = std.mem.readIntLittle(u32, data[22..26]);
-  if ((DatumFlag.OPC.isSet(flags) and opc == 0) or (!DatumFlag.OPC.isSet(flags) and opc > 0)) {
+  if ((DatumFlag.OPC.isSet(flags) and std.mem.eql(u8, data[22..26], empty4[0..4])) or (!DatumFlag.OPC.isSet(flags) and !std.mem.eql(u8, data[22..26], empty4[0..4]))) {
     return false;
   }
 
   // DatumFlag.Chunked is set then chunk size value must be gte 1
   if ((DatumFlag.Chunked.isSet(flags) and std.mem.eql(u8, data[26..28], empty2[0..2])) or 
-    (!DatumFlag.Chunked.isSet(flags) and std.mem.eql(u8, data[26..28], empty2[0..2]))) {
+    (!DatumFlag.Chunked.isSet(flags) and !std.mem.eql(u8, data[26..28], empty2[0..2]))) {
     return false;
   }
 
   // DatumFlag.Network is set then network id value must be gte 1
-  const net_id: u32 = std.mem.readIntLittle(u32, data[28..32]);
-  if ((DatumFlag.Network.isSet(flags) and net_id == 0) or (!DatumFlag.Network.isSet(flags) and net_id > 0)) {
+  if ((DatumFlag.Network.isSet(flags) and std.mem.eql(u8, data[28..32], empty4[0..4])) or (!DatumFlag.Network.isSet(flags) and !std.mem.eql(u8, data[28..32], empty4[0..4]))) {
     return false;
   }
 
@@ -218,13 +218,172 @@ pub fn hasValidHeader(data: []const u8) bool {
   if (DatumFlag.Metadata.isSet(flags) and std.mem.eql(u8, data[56..58], empty2[0..2])) {
     return false;
   }
-  if (!DatumFlag.Metadata.isSet(flags) and (!std.mem.eql(u8, data[56..58], empty2[0..2]) or !std.mem.eql(u8, data[58..62], empty2[0..2]))) {
+  if (!DatumFlag.Metadata.isSet(flags) and (!std.mem.eql(u8, data[56..58], empty2[0..2]) or !std.mem.eql(u8, data[58..62], empty4[0..4]))) {
     return false;
   }
-
+  
   return true;
 }
 
+// decodeHeader returns the header information of a Cryptdatum data without decoding the entire data.
+// The header information is read from the provided reader, which should contain the Cryptdatum data.
+// If the header is invalid or an error occurs while reading, an error is returned.
+//
+// Caller is responsible to close the source e.g FILE
+pub fn decodeHeader(data: []const u8) Error!Header {
+
+  if (data.len < HeaderSize) return Error.EOF;
+  if (!hasHeader(data)) return Error.UnsupportedFormat;
+  if (!hasValidHeader(data)) return Error.InvalidHeader;
+
+  const header = Header{
+    .version = std.mem.readIntLittle(u16, data[4..6]),
+    .flags = std.mem.readIntLittle(u64, data[6..14]),
+    .timestamp = std.mem.readIntLittle(u64, data[14..22]),
+    .opc = std.mem.readIntLittle(u32, data[22..26]),
+    .chunk_size = std.mem.readIntLittle(u16, data[26..28]),
+    .network_id = std.mem.readIntLittle(u32, data[28..32]),
+    .size = std.mem.readIntLittle(u64, data[32..40]),
+    .checksum = std.mem.readIntLittle(u64, data[40..48]),
+    .compression = std.mem.readIntLittle(u16, data[48..50]),
+    .encryption = std.mem.readIntLittle(u16, data[50..52]),
+    .signature_type = std.mem.readIntLittle(u16, data[52..54]),
+    .signature_size = std.mem.readIntLittle(u16, data[54..56]),
+    .metadata_spec = std.mem.readIntLittle(u16, data[56..58]),
+    .metadata_size = std.mem.readIntLittle(u32, data[58..62]),
+  };
+  return header;
+}
+
+pub const TimeFormatter = struct {
+  buf: []u8,
+  allocator: std.mem.Allocator,
+  timestamp: u64 = 0,
+  
+  const MaxBufSize: u16 = 1280;
+
+  pub const FormatError = error{
+    OutOfMemory,
+    InvalidRange,
+  };
+
+  pub fn init(allocator: std.mem.Allocator, ts: u64) !TimeFormatter {
+    return .{
+      .buf = allocator.alloc(u8, MaxBufSize) catch {
+        return FormatError.OutOfMemory;
+      },
+      .allocator = allocator,
+      .timestamp = ts,
+    };
+  }
+
+  pub fn format(self: *TimeFormatter, fmt: []const u8) ![]const u8 {
+    const dr = divRem(self.timestamp, 1_000_000_000);
+    const days: u64 = dr.sec / 86400;
+    const date = get_date(days);
+
+    const sec: u64 = (dr.sec % 60);
+    const min: u64 = ((dr.sec / 60) % 60);
+    const hour: u64 = ((dr.sec / 3600) % 24);
+
+    var fmt_str = std.ArrayList(u8).init(self.allocator);
+    defer fmt_str.deinit();
+    var writer = fmt_str.writer();
+    var j: usize = 0;
+    var f: bool = false;
+    for (fmt) |c, i| {
+      if (j >= MaxBufSize) {
+        break;
+      }
+      switch (c) {
+        '%' => {
+          var n = fmt[i+1];
+          f = true;
+          switch (n) {
+            'Y' => try writer.print("{d:0>4}", .{date.year}),
+            'm' => try writer.print("{d:0>2}", .{date.month}),
+            'd' => try writer.print("{d:0>2}", .{date.day}),
+            'H' => try writer.print("{d:0>2}", .{hour}),
+            'M' => try writer.print("{d:0>2}", .{min}),
+            'S' => try writer.print("{d:0>2}", .{sec}),
+            'n' => try writer.print(".{d:0>9}", .{dr.nsec}),
+            else => fmt_str.append(n) catch unreachable,
+          }
+        },
+        else => {
+          if (!f) {
+            fmt_str.append(c) catch unreachable;
+          }
+          f = false;
+        },
+      }
+    }
+    
+    const slice = try std.fmt.bufPrint(self.buf, "{s}", .{fmt_str.items});
+    return slice;
+  }
+
+  pub fn deinit(self: *TimeFormatter) void {
+    self.allocator.free(self.buf);
+  }
+
+    // Calculates the quotient and remainder of the given number when divided by the given divisor.
+  fn divRem(x: u64, y: u64) struct { sec: u64, nsec: u64 } {
+    return .{ .sec = x / y, .nsec = x % y };
+  }
+
+  fn get_date(days: u64) struct { year: u64, month: u8, day: u8 } {
+    var year: u64 = 1970;
+    var month: u8 = 1;
+    var day: u8 = 1;
+
+    var ds: u64 = days;
+    while (ds >= 365) {
+      if (is_leap_year(year)) {
+        if (ds >= 366) {
+          ds -= 366;
+          year += 1;
+        } else {
+          break;
+        }
+      } else {
+        ds -= 365;
+        year += 1;
+      }
+    }
+    while (ds >= 28) {
+      var dim = days_in_month(year, month);
+      if (ds >= dim) {
+        ds -= dim;
+        month += 1;
+      } else {
+        break;
+      }
+    }
+    day += @truncate(u8, ds);
+    return .{
+      .year = year,
+      .month = month,
+      .day = day,
+    };
+  }
+
+  fn is_leap_year(year: u64) bool {
+    return (year % 4 == 0 and year % 100 != 0) or year % 400 == 0;
+  }
+
+  fn days_in_month(year: u64, month: u8) u8 {
+    switch (month) {
+      1, 3, 5, 7, 8, 10, 12 => return 31,
+      4, 6, 9, 11 => return 30,
+      2 => if (is_leap_year(year)) { return 29; } else { return 28; },
+      else => {},
+    }
+    return 0;
+  }
+};
+
+const expect = std.testing.expect;
 
 fn minimal_valid_header() [64]u8 {
   return [64]u8{
@@ -267,8 +426,6 @@ fn header_full_featured() [64]u8 {
     0xa6, 0xe5, // delimiter
   };
 }
-
-const expect = std.testing.expect;
 
 test "has header" {
   try expect(hasHeader(minimal_valid_header()[0..]));
