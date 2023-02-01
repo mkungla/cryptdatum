@@ -4,7 +4,9 @@
 
 package spec
 
-import "encoding/binary"
+import (
+	"encoding/binary"
+)
 
 //go:generate go run spec-v1-gen.go
 
@@ -30,6 +32,7 @@ func (s Specification) NewMinimalValidHeader() []byte {
 	s.HeaderSetFlag(header, uint64(4)) // DatumEmpty
 	s.HeaderSetTimestamp(header, uint64(s.MagicDate))
 	s.HeaderSetDelimiter(header)
+
 	return header
 }
 

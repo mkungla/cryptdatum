@@ -2,6 +2,7 @@ build/
 draft/
 target/
 **/__pycache__/*
+**/zig-cache/*
 
 perf.data
 Cargo.lock
