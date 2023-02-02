@@ -1,8 +1,7 @@
-build/
-draft/
-target/
-**/__pycache__/*
-**/zig-cache/*
+# General
 
-perf.data
-Cargo.lock
+# Python
+**/__pycache__/*
+
+# ZIG
+**/zig-cache/*
