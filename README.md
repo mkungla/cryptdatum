@@ -1,4 +1,4 @@
-<h1><b>Cryptdatum Data Format Version 1.0.0</b></h1>
+<h1><b>Cryptdatum Data Format Specification - Version 1.0.0</b></h1>
 <h2>Public Working Draft</h2>
 
 ---
@@ -10,9 +10,9 @@
 |                       |              |
 | --------------------- | ------------ |
 | **Date:**             | *10.05.2022* |
-| **Updated:**          | *30.01.2023* |
+| **Updated:**          | *01.02.2023* |
 | **Version:**          | *1*          |
-| **Semantic Version:** | *0.4.17*      |
+| **Semantic Version:** | *0.5.0*      |
 
 <h2>Table Of Contents</h2>
 
