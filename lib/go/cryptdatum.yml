@@ -1,0 +1,19 @@
+env:
+  CGO_ENABLED: 0
+
+provides:
+  bin:
+build:
+  tasks:
+    - name: build go example binary
+      wd: ./cryptdatum/cmd/cryptdatum
+      commands:
+        - go build -o $CDT_BUILD_DIR/bin/cryptdatum .
+      outputs:
+        - $CDT_BUILD_DIR/bin/cryptdatum
+tests:
+  tasks:
+    - name: test go library
+      wd: ./cryptdatum
+      commands:
+        - go test -cover ./...
