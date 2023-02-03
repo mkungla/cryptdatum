@@ -94,9 +94,9 @@ int main(int argc, char *argv[])
 
   // Spec files
   TestCase test_cases[] = {
-  { "tests/spec/testdata/v1/valid-header-minimal.cdt", 1 },
-  { "tests/spec/testdata/v1/valid-header-full-featured.cdt", 1 },
-  { "tests/spec/testdata/v1/invalid-header-full-featured.cdt", 0 }
+  { "../../spec/v1/testdata/valid-header-minimal.cdt", 1 },
+  { "../../spec/v1/testdata/valid-header-full-featured.cdt", 1 },
+  { "../../spec/v1/testdata/invalid-header-full-featured.cdt", 0 }
   };
   test_spec_V1_has_valid_header(test_cases, 3);
   return 0;

@@ -6,3 +6,9 @@ build:
       outputs:
         - $CDT_BUILD_DIR/bin/cryptdatum
 
+tests:
+  tasks:
+    - name: test C library
+      commands:
+        - gcc -o $CDT_BUILD_DIR/bin/cryptdatum-test cryptdatum.c cryptdatum_test.c
+        - $CDT_BUILD_DIR/bin/cryptdatum-test
