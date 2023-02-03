@@ -1,4 +1,5 @@
 # General
+build/*
 
 # Python
 **/__pycache__/*

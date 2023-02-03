@@ -1,0 +1,8 @@
+build:
+  tasks:
+    - name: build C example binary
+      commands:
+        - gcc -o $CDT_BUILD_DIR/bin/cryptdatum cryptdatum.c cmd/cryptdatum.c
+      outputs:
+        - $CDT_BUILD_DIR/bin/cryptdatum
+

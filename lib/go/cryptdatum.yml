@@ -1,8 +1,6 @@
 env:
   CGO_ENABLED: 0
 
-provides:
-  bin:
 build:
   tasks:
     - name: build go example binary
