@@ -12,6 +12,7 @@ import (
 	"github.com/mkungla/happy"
 	"github.com/mkungla/happy/pkg/vars"
 	"github.com/mkungla/happy/sdk/cli"
+	"golang.org/x/exp/slices"
 	"golang.org/x/exp/slog"
 	"gopkg.in/yaml.v3"
 )
@@ -44,13 +45,17 @@ func loadLanguage(sess *happy.Session, lang, src string) (*Language, error) {
 }
 
 type LanguageConfig struct {
+	ENV   map[string]string `yaml:"env"`
 	Build struct {
 		Tasks []Task `yaml:"tasks"`
 	} `yaml:"build"`
 	Tests struct {
 		Tasks []Task `yaml:"tasks"`
 	} `yaml:"tests"`
-	ENV map[string]string `yaml:"env"`
+	Binary struct {
+		Bin      string   `yaml:"bin"`
+		Commands []string `yaml:"commands"`
+	}
 }
 
 type Task struct {
@@ -109,7 +114,7 @@ func (l *Language) DoTask(sess *happy.Session, task Task, envmap *vars.Map) erro
 			return err
 		}
 
-		sess.Log().Ok("build command completed", cmdtask.LogAttr())
+		sess.Log().Ok("command completed", cmdtask.LogAttr())
 	}
 
 	// check expected outputs
@@ -122,6 +127,10 @@ func (l *Language) DoTask(sess *happy.Session, task Task, envmap *vars.Map) erro
 		}
 	}
 
-	sess.Log().Ok("build task complete", btask.LogAttr())
+	sess.Log().Ok("task complete", btask.LogAttr())
 	return nil
+}
+
+func (l *Language) ProvidesCommand(cmd string) bool {
+	return slices.Contains(l.Config.Binary.Commands, cmd)
 }

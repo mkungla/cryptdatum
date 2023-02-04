@@ -14,3 +14,11 @@ tests:
         - $CDT_BUILD_DIR/bin/cryptdatum-test
       outputs:
         - $CDT_BUILD_DIR/bin/cryptdatum-test
+
+binary:
+  bin: $CDT_BUILD_DIR/bin/cryptdatum
+  commands:
+    - file-has-header
+    - file-has-valid-header
+    - file-has-invalid-header
+    - file-info

@@ -106,12 +106,12 @@ fn print_header(header: Header) {
   let datumsize = pretty_size(header.size);
 
   print!("+-------------------+-----------------------------------------+------------------------------------+\n");
-  print!("| CRYPTDATUM        | SIZE: {:>23} | CREATED: {:>35} | \n", datumsize, created);
+  print!("| CRYPTDATUM        | SIZE: {:<23} | CREATED: {:>35} | \n", datumsize, created);
 	print!("+-------------------+----------+------------------------------+-------------+----------------------+\n");
 	print!("| Field             | Size (B) | Description                  | Type        | Value                |\n");
 	print!("+-------------------+----------+------------------------------+-------------+----------------------+\n");
 	print!("| VERSION ID        | 2        | Version number               | 16-bit uint | {:<20} |\n", header.version);
-	print!("| FLAGS             | 8        | Flags                        | 64-bit uint | {:<20} |\n", 0);
+	print!("| FLAGS             | 8        | Flags                        | 64-bit uint | {:<20} |\n", header.flags);
 	print!("| TIMESTAMP         | 8        | Timestamp                    | 64-bit uint | {:<20} |\n", header.timestamp);
 	print!("| OPERATION COUNTER | 4        | Operation Counter            | 32-bit uint | {:<20} |\n", header.opc);
 	print!("| CHUNK SIZE        | 8        | Data chunk size              | 16-bit uint | {:<20} |\n", header.chunk_size);

@@ -1,0 +1,37 @@
++-------------------+-----------------------------------------+------------------------------------+
+| CRYPTDATUM        | SIZE: 5 B                     | CREATED:      2022-05-10T04:03:02.000000001Z | 
++-------------------+----------+------------------------------+-------------+----------------------+
+| Field             | Size (B) | Description                  | Type        | Value                |
++-------------------+----------+------------------------------+-------------+----------------------+
+| VERSION ID        | 2        | Version number               | 16-bit uint | 1                    |
+| FLAGS             | 8        | Flags                        | 64-bit uint | 10104                |
+| TIMESTAMP         | 8        | Timestamp                    | 64-bit uint | 1652155382000000001  |
+| OPERATION COUNTER | 4        | Operation Counter            | 32-bit uint | 2                    |
+| CHUNK SIZE        | 8        | Data chunk size              | 16-bit uint | 3                    |
+| NETWORK ID        | 8        | Network ID                   | 32-bit uint | 4                    |
+| SIZE              | 8        | Total payload size           | 64-bit uint | 5                    |
+| CHECKSUM          | 8        | Datum checksum               | 64-bit uint | 1234567890           |
+| COMPRESSION ALGO. | 2        | Compression algorithm        | 16-bit uint | 6                    |
+| ENCRYPTION ALGO.  | 2        | Encryption algorithm         | 16-bit uint | 7                    |
+| SIGNATURE TYPE    | 2        | Signature type               | 16-bit uint | 8                    |
+| SIGNATURE SIZE    | 2        | Signature size               | 16-bit uint | 9                    |
+| METADATA SPEC     | 2        | Metadata specification       | 16-bit uint | 10                   |
+| MEATADATA SIZE    | 4        | Metadata size                | 32-bit uint | 11                   |
++-------------------+----------+------------------------------+-------------+----------------------+
+| DATUM FLAGS                  | Bits                         | Flag bit is set                    |
++------------------------------+-------------------------------------------------------------------+
+| DATUM INVALID                | 1                            | false                              |
+| DATUM DRAFT                  | 2                            | false                              |
+| DATUM EMPTY                  | 4                            | false                              |
+| DATUM CHECKSUM               | 8                            | true                               |
+| DATUM OPC                    | 16                           | true                               |
+| DATUM COMPRESSED             | 32                           | true                               |
+| DATUM ENCRYPTED              | 64                           | true                               |
+| DATUM EXTRACTABLE            | 128                          | false                              |
+| DATUM SIGNED                 | 256                          | true                               |
+| DATUM CHUNKED                | 512                          | true                               |
+| DATUM METADATA               | 1024                         | true                               |
+| DATUM COMPROMISED            | 2048                         | false                              |
+| DATUM BIG ENDIAN             | 4096                         | false                              |
+| DATUM DATUM NETWORK          | 8192                         | true                               |
++------------------------------+-------------------------------------------------------------------+

@@ -139,7 +139,7 @@ fn print_header(allocator: std.mem.Allocator, header: cryptdatum.Header) !void {
   const datumsize = try std.fmt.bufPrint(&size_buf, "{d} {s}", .{size, units[i]});
 
   try stdout.print("+-------------------+-----------------------------------------+------------------------------------+\n", .{});
-  try stdout.print("| CRYPTDATUM        | SIZE: {s:>23} | CREATED: {s:>35} | \n", .{datumsize, created});
+  try stdout.print("| CRYPTDATUM        | SIZE: {s:<23} | CREATED: {s:>35} | \n", .{datumsize, created});
   try stdout.print("+-------------------+----------+------------------------------+-------------+----------------------+\n", .{});
   try stdout.print("| Field             | Size (B) | Description                  | Type        | Value                |\n", .{});
   try stdout.print("+-------------------+----------+------------------------------+-------------+----------------------+\n", .{});
