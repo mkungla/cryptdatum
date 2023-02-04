@@ -24,3 +24,9 @@ build:
             -o $CDT_BUILD_DIR/bin/cryptdatum
       outputs:
         - $CDT_BUILD_DIR/bin/cryptdatum
+
+tests:
+  tasks:
+    - name: test Rust library
+      commands:
+        - cargo test

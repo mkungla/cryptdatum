@@ -1,0 +1,17 @@
+build:
+  tasks:
+    - name: build ZIG binary
+      commands:
+        - |
+          zig build-exe \
+            -femit-bin=$CDT_BUILD_DIR/bin/cryptdatum \
+            cryptdatum.zig
+      outputs:
+        - $CDT_BUILD_DIR/bin/cryptdatum
+
+tests:
+  tasks:
+    - name: test ZIG library
+      commands:
+        - zig test cryptdatum/cryptdatum.zig
+        - zig test cryptdatum.zig
