@@ -3,7 +3,7 @@ env:
 
 build:
   tasks:
-    - name: build go example binary
+    - name: build Go binary
       wd: ./cryptdatum/cmd/cryptdatum
       commands:
         - go build -o $CDT_BUILD_DIR/bin/cryptdatum .

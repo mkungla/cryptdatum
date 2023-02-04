@@ -1,6 +1,6 @@
 build:
   tasks:
-    - name: build C example binary
+    - name: build C binary
       commands:
         - gcc -o $CDT_BUILD_DIR/bin/cryptdatum cryptdatum.c cmd/cryptdatum.c
       outputs:
@@ -11,4 +11,6 @@ tests:
     - name: test C library
       commands:
         - gcc -o $CDT_BUILD_DIR/bin/cryptdatum-test cryptdatum.c cryptdatum_test.c
+        - $CDT_BUILD_DIR/bin/cryptdatum-test
+      outputs:
         - $CDT_BUILD_DIR/bin/cryptdatum-test

@@ -9,5 +9,3 @@ description = "The Cryptdatum format is a simple, lightweight format for storing
 [lib]
 name = "cryptdatum"
 path = "cryptdatum.rs"
-
-[dependencies]

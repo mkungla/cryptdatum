@@ -5,6 +5,9 @@ use std::env;
 use std::fs::File;
 use std::io::Read;
 use std::process::exit;
+
+extern crate cryptdatum;
+
 use cryptdatum::*;
 
 fn main() -> Result<()> {

@@ -4,5 +4,9 @@ build/*
 # Python
 **/__pycache__/*
 
+# Rust
+lib/rust/target/
+lib/rust/Cargo.lock
+
 # ZIG
 **/zig-cache/*

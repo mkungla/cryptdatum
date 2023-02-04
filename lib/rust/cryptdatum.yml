@@ -1,0 +1,26 @@
+build:
+  tasks:
+    - name: build Rust library
+      commands:
+        - | 
+          rustc cryptdatum.rs \
+            --crate-type=rlib \
+            -C debuginfo=0 \
+            -C opt-level=3 \
+            -o $CDT_BUILD_DIR/libcryptdatum.rlib
+      outputs:
+        - $CDT_BUILD_DIR/libcryptdatum.rlib
+
+    - name: build Rust binary
+      wd: ./cmd
+      commands:
+        - |
+          rustc cryptdatum.rs \
+            --extern cryptdatum=$CDT_BUILD_DIR/libcryptdatum.rlib \
+            --edition 2021 \
+            --crate-type bin \
+            -C debuginfo=0 \
+            -C opt-level=3 \
+            -o $CDT_BUILD_DIR/bin/cryptdatum
+      outputs:
+        - $CDT_BUILD_DIR/bin/cryptdatum
