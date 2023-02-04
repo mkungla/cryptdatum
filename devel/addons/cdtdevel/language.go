@@ -7,9 +7,7 @@ package cdtdevel
 import (
 	"fmt"
 	"os"
-	"os/exec"
 	"path/filepath"
-	"strings"
 
 	"github.com/mkungla/happy"
 	"github.com/mkungla/happy/pkg/vars"
@@ -74,8 +72,6 @@ func (l *Language) DoTask(sess *happy.Session, task Task, envmap *vars.Map) erro
 
 	btask := sess.Log().Task(task.Name, slog.String("lang", l.Lang))
 
-	envvars := envmap.ToKeyValSlice()
-
 	wd := l.Source
 	if task.WD != "" {
 		wd = filepath.Join(wd, task.WD)
@@ -100,20 +96,14 @@ func (l *Language) DoTask(sess *happy.Session, task Task, envmap *vars.Map) erro
 
 	sess.Log().Debug("execute task commands", slog.String("task", task.Name))
 	for _, rawcmd := range task.Commands {
-		expandedcmd := os.Expand(rawcmd, envMapper(envmap))
-		cliargs := strings.Fields(expandedcmd)
-		bin := cliargs[0]
-		args := cliargs[1:]
+		cmd := prepareCommand(rawcmd, envmap)
+		cmd.Dir = wd
 
 		cmdtask := sess.Log().Task(
 			fmt.Sprintf("%s: cmd", task.Name),
-			slog.String("bin", bin),
-			slog.Any("args", args),
+			slog.String("bin", cmd.Path),
+			slog.Any("args", cmd.Args),
 		)
-
-		cmd := exec.Command(bin, args...)
-		cmd.Dir = wd
-		cmd.Env = envvars
 
 		if err := cli.RunCommand(sess, cmd); err != nil {
 			return err

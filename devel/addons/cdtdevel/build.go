@@ -12,6 +12,26 @@ import (
 	"golang.org/x/exp/slog"
 )
 
+func buildCommand(api *API) *happy.Command {
+	cmd := happy.NewCommand(
+		"build",
+		happy.Option("usage", "build Cryptdatum libraries and binaries"),
+		happy.Option("description", "Most of these build binaries are mostly example implementation and used for testing and benchmarking"),
+	)
+
+	cmd.Do(func(sess *happy.Session, args happy.Args) error {
+		if len(args.Args()) == 0 {
+			return errors.New("missing argument 'all' or language to build")
+		}
+		buildarg := args.Arg(0).String()
+		if buildarg == "all" {
+			return api.buildAll(sess)
+		}
+		return api.buildLanguage(sess, buildarg)
+	})
+	return cmd
+}
+
 func (api *API) buildAll(sess *happy.Session) error {
 	task := sess.Log().Task("build all packages...")
 

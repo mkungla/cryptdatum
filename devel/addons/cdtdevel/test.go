@@ -12,6 +12,25 @@ import (
 	"golang.org/x/exp/slog"
 )
 
+func testCommand(api *API) *happy.Command {
+	cmd := happy.NewCommand(
+		"test",
+		happy.Option("usage", "test Cryptdatum libraries and source code"),
+	)
+
+	cmd.Do(func(sess *happy.Session, args happy.Args) error {
+		if len(args.Args()) == 0 {
+			return errors.New("missing argument 'all' or language to build")
+		}
+		buildarg := args.Arg(0).String()
+		if buildarg == "all" {
+			return api.testAll(sess)
+		}
+		return api.testLanguage(sess, buildarg)
+	})
+	return cmd
+}
+
 func (api *API) testAll(sess *happy.Session) error {
 	task := sess.Log().Task("test all packages...")
 	api.mu.Lock()

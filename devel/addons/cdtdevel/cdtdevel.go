@@ -70,44 +70,6 @@ func cmd(api *API) *happy.Command {
 
 	cmd.AddSubCommand(buildCommand(api))
 	cmd.AddSubCommand(testCommand(api))
-	return cmd
-}
-
-func buildCommand(api *API) *happy.Command {
-	cmd := happy.NewCommand(
-		"build",
-		happy.Option("usage", "build Cryptdatum libraries and binaries"),
-		happy.Option("description", "Most of these build binaries are mostly example implementation and used for testing and benchmarking"),
-	)
-
-	cmd.Do(func(sess *happy.Session, args happy.Args) error {
-		if len(args.Args()) == 0 {
-			return errors.New("missing argument 'all' or language to build")
-		}
-		buildarg := args.Arg(0).String()
-		if buildarg == "all" {
-			return api.buildAll(sess)
-		}
-		return api.buildLanguage(sess, buildarg)
-	})
-	return cmd
-}
-
-func testCommand(api *API) *happy.Command {
-	cmd := happy.NewCommand(
-		"test",
-		happy.Option("usage", "test Cryptdatum libraries and source code"),
-	)
-
-	cmd.Do(func(sess *happy.Session, args happy.Args) error {
-		if len(args.Args()) == 0 {
-			return errors.New("missing argument 'all' or language to build")
-		}
-		buildarg := args.Arg(0).String()
-		if buildarg == "all" {
-			return api.testAll(sess)
-		}
-		return api.testLanguage(sess, buildarg)
-	})
+	cmd.AddSubCommand(envCommand(api))
 	return cmd
 }

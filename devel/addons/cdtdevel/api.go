@@ -8,6 +8,7 @@ import (
 	"fmt"
 	"io/fs"
 	"os"
+	"os/exec"
 	"path/filepath"
 	"strings"
 	"sync"
@@ -96,6 +97,7 @@ func (api *API) EnvMapperForLanguage(sess *happy.Session, lang string) (*vars.Ma
 		RO    bool
 	}{
 		{"CDT_LANG", lang, true},
+		{"CDT_SRC_DIR", language.Source, true},
 		{"CDT_BUILD_DIR", filepath.Join(language.BuildDir), true},
 	}
 
@@ -126,4 +128,28 @@ func envMapper(env *vars.Map) func(string) string {
 		}
 		return ""
 	}
+}
+
+func prepareCommand(rawcmd string, env *vars.Map) *exec.Cmd {
+	expandedcmd := os.Expand(rawcmd, envMapper(env))
+	rawcliargs := strings.Fields(expandedcmd)
+	var (
+		bin  string
+		args []string
+	)
+	for _, arg := range rawcliargs {
+		if arg == "\\" {
+			continue
+		}
+		if bin == "" {
+			bin = arg
+		} else {
+			args = append(args, arg)
+		}
+	}
+
+	cmd := exec.Command(bin, args...)
+	cmd.Env = env.ToKeyValSlice()
+
+	return cmd
 }
