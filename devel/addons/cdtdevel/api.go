@@ -8,12 +8,12 @@ import (
 	"fmt"
 	"io/fs"
 	"os"
-	"os/exec"
 	"path/filepath"
 	"strings"
 	"sync"
 	"time"
 
+	"github.com/howijd/cryptdatum/devel/addons/cdtdevel/pkg/language"
 	"github.com/mkungla/happy"
 	"github.com/mkungla/happy/pkg/vars"
 	"golang.org/x/exp/slog"
@@ -22,7 +22,7 @@ import (
 type API struct {
 	mu     sync.Mutex
 	srcdir string
-	langs  map[string]*Language
+	langs  map[string]*language.Language
 
 	cache map[string]time.Time
 }
@@ -42,7 +42,7 @@ func (api *API) loadLanguageLibraries(sess *happy.Session, dir fs.DirEntry) erro
 	src := filepath.Join(sess.Get("cryptdatum.lib.dir").String(), lang)
 	sess.Log().Debug("loading libraries...", slog.String("language", dir.Name()), slog.String("src", src))
 
-	conf, err := loadLanguage(sess, lang, src)
+	conf, err := language.Load(sess, lang, src)
 	if err != nil {
 		return err
 	}
@@ -119,37 +119,4 @@ func (api *API) EnvMapperForLanguage(sess *happy.Session, lang string) (*vars.Ma
 
 func transformKey(key string) string {
 	return strings.ToUpper(strings.Replace(key, ".", "_", -1))
-}
-
-func envMapper(env *vars.Map) func(string) string {
-	return func(key string) string {
-		if env.Has(key) {
-			return env.Get(key).String()
-		}
-		return ""
-	}
-}
-
-func prepareCommand(rawcmd string, env *vars.Map) *exec.Cmd {
-	expandedcmd := os.Expand(rawcmd, envMapper(env))
-	rawcliargs := strings.Fields(expandedcmd)
-	var (
-		bin  string
-		args []string
-	)
-	for _, arg := range rawcliargs {
-		if arg == "\\" {
-			continue
-		}
-		if bin == "" {
-			bin = arg
-		} else {
-			args = append(args, arg)
-		}
-	}
-
-	cmd := exec.Command(bin, args...)
-	cmd.Env = env.ToKeyValSlice()
-
-	return cmd
 }

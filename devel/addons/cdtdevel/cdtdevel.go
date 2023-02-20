@@ -10,6 +10,7 @@ import (
 	"path/filepath"
 	"time"
 
+	"github.com/howijd/cryptdatum/devel/addons/cdtdevel/pkg/language"
 	"github.com/mkungla/happy"
 )
 
@@ -20,7 +21,7 @@ func Addon() *happy.Addon {
 	)
 
 	api := &API{
-		langs: make(map[string]*Language),
+		langs: make(map[string]*language.Language),
 		cache: make(map[string]time.Time),
 	}
 
@@ -71,5 +72,6 @@ func cmd(api *API) *happy.Command {
 	cmd.AddSubCommand(buildCommand(api))
 	cmd.AddSubCommand(testCommand(api))
 	cmd.AddSubCommand(envCommand(api))
+	cmd.AddSubCommand(benchCommand(api))
 	return cmd
 }

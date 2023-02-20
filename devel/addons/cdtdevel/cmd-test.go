@@ -13,6 +13,7 @@ import (
 	"path/filepath"
 	"strings"
 
+	"github.com/howijd/cryptdatum/devel/addons/cdtdevel/pkg/language"
 	"github.com/mkungla/happy"
 	"github.com/mkungla/happy/sdk/cli"
 	"github.com/sergi/go-diff/diffmatchpatch"
@@ -96,7 +97,7 @@ func (api *API) testLanguage(sess *happy.Session, lang string) error {
 	return nil
 }
 
-func (api *API) testFileInfo(sess *happy.Session, lang *Language) error {
+func (api *API) testFileInfo(sess *happy.Session, lang *language.Language) error {
 	expected, err := os.ReadFile(filepath.Join(api.srcdir, "spec/v1/testdata/valid-header-full-featured-file-info.out"))
 	if err != nil {
 		return err
@@ -108,7 +109,7 @@ func (api *API) testFileInfo(sess *happy.Session, lang *Language) error {
 	}
 
 	testfile := filepath.Join(api.srcdir, "spec/v1/testdata/valid-header-full-featured.cdt")
-	bin := os.Expand(lang.Config.Binary.Bin, envMapper(envmap))
+	bin := os.Expand(lang.Config.Binary.Bin, language.EnvMapper(envmap))
 	cmd := exec.Command(bin, []string{"file-info", testfile}...)
 
 	out, err := cli.ExecCommandRaw(sess, cmd)
@@ -127,7 +128,7 @@ func (api *API) testFileInfo(sess *happy.Session, lang *Language) error {
 	return nil
 }
 
-func (api *API) testCommandsExitCodes(sess *happy.Session, lang *Language) error {
+func (api *API) testCommandsExitCodes(sess *happy.Session, lang *language.Language) error {
 	testdatadir := filepath.Join(api.srcdir, "spec/v1/testdata")
 	testdata, err := os.ReadDir(testdatadir)
 	if err != nil {
@@ -146,7 +147,7 @@ func (api *API) testCommandsExitCodes(sess *happy.Session, lang *Language) error
 	if err != nil {
 		return err
 	}
-	bin := os.Expand(lang.Config.Binary.Bin, envMapper(envmap))
+	bin := os.Expand(lang.Config.Binary.Bin, language.EnvMapper(envmap))
 
 	// test file-has-header
 	if lang.ProvidesCommand("file-has-header") {
