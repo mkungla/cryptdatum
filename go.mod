@@ -1,3 +1,3 @@
-module github.com/howijd/cryptdatum
+module github.com/happy-sdk/cryptdatum
 
 go 1.20

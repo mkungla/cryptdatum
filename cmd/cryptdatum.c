@@ -1,6 +1,13 @@
 // go:build !cgo
 //  +build !cgo
 
+/**
+ * @author Happy SDK Authors
+ * @copyright © 2022 Happy SDK Authors
+ *
+ * @see https://github.com/happy-sdk/cryptdatum
+ */
+
 #include "../cryptdatum.h"
 #include <string.h>
 #include <time.h>

@@ -9,10 +9,10 @@
  * which provides functions for reading and writing Cryptdatum data
  * structures.
  *
- * @author Marko Kungla
- * @copyright Copyright (c) 2022, The howijd.network Authors
+ * @author Happy SDK Authors
+ * @copyright © 2022 Happy SDK Authors
  *
- * @see https://github.com/howijd/cryptdatum
+ * @see https://github.com/happy-sdk/cryptdatum
  */
 #ifndef CRYPTDATUM_H
 #define CRYPTDATUM_H

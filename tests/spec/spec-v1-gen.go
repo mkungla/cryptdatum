@@ -1,6 +1,5 @@
-// Copyright 2022 The howijd.network Authors
-// Licensed under the Apache License, Version 2.0.
-// See the LICENSE file.
+// © 2023 Happy SDK Authors
+// Apache License 2.0
 
 //go:build ignore
 
@@ -13,7 +12,7 @@ import (
 	"path/filepath"
 	"time"
 
-	"github.com/howijd/cryptdatum/tests/spec"
+	"github.com/happy-sdk/cryptdatum/tests/spec"
 )
 
 func main() {

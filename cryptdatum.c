@@ -1,6 +1,13 @@
 // go:build !cgo
 //  +build !cgo
 
+/**
+ * @author Happy SDK Authors
+ * @copyright © 2022 Happy SDK Authors
+ *
+ * @see https://github.com/happy-sdk/cryptdatum
+ */
+
 /*
  * The Cryptdatum format is a powerful, flexible universal data format for 
  * storing data in a long-term compatible way across domains and with any 

@@ -1,6 +1,5 @@
-// Copyright 2023 The howijd.network Authors
-// Licensed under the Apache License, Version 2.0.
-// See the LICENSE file.
+// © 2023 Happy SDK Authors
+// Apache License 2.0
 
 const std = @import("std");
 const cryptdatum = @import("cryptdatum/cryptdatum.zig");
