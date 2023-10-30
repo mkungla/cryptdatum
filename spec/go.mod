@@ -1,3 +1,3 @@
-module github.com/howijd/cryptdatum/spec
+module github.com/happy-sdk/cryptdatum/spec
 
-go 1.20
+go 1.21
