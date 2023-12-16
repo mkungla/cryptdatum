@@ -1,4 +1,4 @@
-<h1><b>Cryptdatum Data Format Specification - Version 1.0.0</b></h1>
+<h1><b>Cryptdatum Data Format Specification - Version 1.0</b></h1>
 <h2>Public Working Draft</h2>
 
 ---
@@ -10,9 +10,8 @@
 |                       |              |
 | --------------------- | ------------ |
 | **Date:**             | *10.05.2022* |
-| **Updated:**          | *01.02.2023* |
-| **Version:**          | *1*          |
-| **Semantic Version:** | *0.5.0*      |
+| **Updated:**          | *15.12.2023* |
+| **Version:**          | *1.0*        |
 
 <h2>Table Of Contents</h2>
 
@@ -51,6 +50,12 @@
   - [File extension](#file-extension)
   - [Error Handling](#error-handling)
   - [Specification Versioning](#specification-versioning)
+    - [Mapping to MAJOR.MINOR](#mapping-to-majorminor)
+    - [Incrementing VERSION ID](#incrementing-version-id)
+    - [Version History Documentation](#version-history-documentation)
+    - [Handling Backward Compatibility](#handling-backward-compatibility)
+    - [Implementation Considerations](#implementation-considerations)
+    - [Future Proofing](#future-proofing)
   - [Cryptdatum Evolution](#cryptdatum-evolution)
 - [Examples and Use Cases](#examples-and-use-cases)
 - [Implementations](#implementations)
@@ -133,25 +138,24 @@ The Cryptdatum header is a 64-byte block of data that contains important informa
 
 The Cryptdatum header consists of the following fields:
 
-| Field                 | Value Type                | Size (bytes) |
-| --------------------- | ------------------------- | ------------ |
-| MAGIC NUMBER          | byte array                | 4            |
-| VERSION ID            | unsigned 16-bit integer   | 2            |
-| FLAGS                 | unsigned 64-bit integer   | 8            |
-| TIMESTAMP             | unsigned 64-bit integer   | 8            |
-| OPERATION COUNTER     | unsigned 32-bit integer   | 4            |
-| CHUNK SIZE            | unsigned 16-bit integer   | 2            |
-| NETWORK ID            | unsigned 32-bit integer   | 4            |
-| SIZE                  | unsigned 64-bit integer   | 8            |
-| CHECKSUM              | unsigned 64-bit integer   | 8            |
-| COMPRESSION ALGORITHM | unsigned 16-bit integer   | 2            |
-| ENCRYPTION ALGORITHM  | unsigned 16-bit integer   | 2            |
-| SIGNATURE TYPE        | unsigned 16-bit integer   | 2            |
-| SIGNATURE SIZE        | unsigned 16-bit integer   | 2            |
-| MEATADATA SPEC        | unsigned 16-bit integer   | 2            |
-| MEATADATA SIZE        | unsigned 32-bit integer   | 4            |
-| DELIMITER             | byte array                | 2            |
-
+| Field                 | Value Type                | Size (bytes) | Required |
+| --------------------- | ------------------------- | ------------ | -------- |
+| MAGIC NUMBER          | byte array                | 4            | Yes      |
+| FLAGS                 | unsigned 64-bit integer   | 8            | Yes      |
+| TIMESTAMP             | unsigned 64-bit integer   | 8            | Yes      |
+| SIZE                  | unsigned 64-bit integer   | 8            | Yes      |
+| VERSION ID            | unsigned 16-bit integer   | 2            | Yes      |
+| CHUNK SIZE            | unsigned 16-bit integer   | 2            | Optional |
+| OPERATION COUNTER     | unsigned 32-bit integer   | 4            | Optional |
+| NETWORK ID            | unsigned 32-bit integer   | 4            | Optional |
+| METADATA SIZE         | unsigned 32-bit integer   | 4            | Optional |
+| CHECKSUM              | unsigned 64-bit integer   | 8            | Optional |
+| COMPRESSION ALGORITHM | unsigned 16-bit integer   | 2            | Optional |
+| ENCRYPTION ALGORITHM  | unsigned 16-bit integer   | 2            | Optional |
+| SIGNATURE TYPE        | unsigned 16-bit integer   | 2            | Optional |
+| SIGNATURE SIZE        | unsigned 16-bit integer   | 2            | Optional |
+| METADATA SPEC         | unsigned 16-bit integer   | 2            | Optional |
+| DELIMITER             | byte array                | 2            | Yes      |
 
 #### Header Fields
 
@@ -174,7 +178,7 @@ The Cryptdatum header consists of the following fields:
 
 ##### VERSION ID
 
-**VERSION ID** field is a 2-byte representing unsigned 16 bit integer value that indicates the version of the Cryptdatum format used to encode the data. This allows the format to evolve over time without breaking backwards compatibility. See [Specification Versioning](#specification-versioning) section for more information. Minumum value for version id field is 1.
+**VERSION ID** field is a 2-byte representing unsigned 16 bit integer value that uniquely identifies the version of the Cryptdatum format. This allows the format to evolve over time without breaking backwards compatibility. See [Specification Versioning](#specification-versioning) section for more information. Minumum value for version id field is 1. Each increment in the `VERSION ID` corresponds to a new release of the specification, whether it's a major overhaul or a minor improvement.
 
 *validation*
 
@@ -191,7 +195,7 @@ The Cryptdatum header consists of the following fields:
 
 ##### TIMESTAMP
 
-**TIMESTAMP** is an 8-byte value that contains a Unix timestamp in nanoseconds, indicating the time when the data was created. It can be used to order data by creation time and to determine the age of the data. The value of this field **MUST** always be set, with the minimum value being `Magic Date` 1652155382000000001, which is the earliest date when the first Cryptdatum container was created based on the initial specification. 
+**TIMESTAMP** is an 8-byte value that contains a Unix timestamp in nanoseconds, indicating the time when the data was created. It can be used to order data by creation time and to determine the age of the data. The value of this field **MUST** always be set, with the minimum value being `Magic Date` 1652155382000000001, which is the earliest timestamp when the first Cryptdatum container was created based on the initial specification. 
 
 *validation*
 
@@ -419,7 +423,7 @@ The checksum is calculated by taking the following values as input:
 | **ENCRYPTION ALGORITHM**  | 2-byte value                      |
 | **MEATADATA SPEC**        | 2-byte value                      |
 | **MEATADATA SIZE**        | 4-byte value                      |
-| **PAYLOAD**               | Variable-length byte array        |
+| **METADATA**              | Variable-length byte array        |
 | **PAYLOAD**               | Variable-length byte array        |
 
 
@@ -476,16 +480,32 @@ In the event of an error, the Cryptdatum format specifies the following handling
 
 ### Specification Versioning
 
-The Cryptdatum specification follows the principles of Semantic Versioning. The *VERSION ID* field is an integer that corresponds to the version number of the specification. The *VERSION ID* should be incremented when the minor version of the specification has been incremented, as per Semantic Versioning principles.
+The Cryptdatum specification adopts a simplified versioning system that uses only MAJOR and MINOR version components. This approach ensures clarity in the evolution of the format and helps maintain backward compatibility.
 
-The *VERSION ID* should not be incremented for patch updates or pre-release versions of the specification. The community maintaining the specification should choose how to handle pre-releases, but it is **RECOMMENDED** that they do not add unnecessary overhead to the header. See the Cryptdatum Evolution section for more guidelines.
+#### Mapping to MAJOR.MINOR
+- Each `VERSION ID` maps directly to a specific MAJOR.MINOR combination. This mapping is critical for understanding the capabilities and compatibility of different versions.
+- The MAJOR version increment signals substantial changes, potentially backward-incompatible. It indicates a significant evolution in the format.
+- The MINOR version increment denotes minor improvements, additions, or changes that are backward-compatible.
 
-Patch updates can be made when the specification is reformatted, rephrased, corrected, or when community guidelines are updated, or when patch resolves some bugs or issues with official Cryptatum implementations.
+#### Incrementing VERSION ID
+- The `VERSION ID` increments sequentially with each new version of the specification.
+- The minimum value for `VERSION ID` is 1, representing the initial release of the specification.
+- `VERSION ID` must never be zero. It should always represent a valid version of the specification.
 
-The *MINOR* version **MUST** be updated together with the *VERSION ID* when new features or significant improvements to existing behavior are introduced without breaking backwards compatibility.
+#### Version History Documentation
+- A comprehensive version history should be maintained in the specification documentation, detailing what changes each `VERSION ID` corresponds to in terms of MAJOR.MINOR.
+- This documentation helps implementers understand the evolution of the format and manage compatibility.
 
-The *MAJOR* version **MUST** be updated when there are backwards-incompatible changes to the specification.
+#### Handling Backward Compatibility
+- Changes in the MAJOR version component should be scrutinized for backward compatibility impacts.
+- Implementers are encouraged to support backward compatibility where feasible, especially for minor version updates.
 
+#### Implementation Considerations
+- Implementers should design their systems to easily adapt to version increments, particularly minor version changes.
+- Systems should be capable of identifying the `VERSION ID` and understanding the corresponding capabilities and requirements of that version.
+
+#### Future Proofing
+- The `VERSION ID`’s 16-bit range offers ample space for future versions. However, thoughtful planning of version increments ensures longevity and relevance of the format.
 
 ### Cryptdatum Evolution
 
@@ -515,10 +535,10 @@ This section covers the API that official low-level language-specific implementa
 
 This function checks if the provided data contains a Cryptdatum header. It looks for specific header fields and checks their alignment, but does not perform any further validations. If the data is likely to be Cryptdatum, the function **MUST** return true. Otherwise, it **MUST** return false. The function will read the first 64 bytes of the byte array to check for the presence of a header.
 
-- *parameters*: variable-length byte array
+- *parameters*: 64 byte array
 - *returns*: boolean
 
-**has_valid_header**
+**is_valid_header**
 
 This function **MUST** check if the provided data contains a valid Cryptdatum header. It verifies the integrity of the header by checking the magic number, delimiter, and other fields. If the header is valid, the function **MUST** return true. Otherwise, it **MUST** return false.
 
@@ -526,7 +546,7 @@ The data argument can contain any data as a variable-length byte array, but shou
 
 It is important to note that this function only validates the header usage. It does not peek at the payload. E.g it does not check if a signature or metadata is present when these flag bits are set. However, it **SHOULD** perform additional header validations depending on the flag bits and corresponding header fields set which are required by the flag bit.
 
-- *parameters*: variable-length byte array
+- *parameters*: 64 byte array
 - *returns*: boolean
 
 ### Libraries
@@ -539,22 +559,4 @@ It is important to note that this function only validates the header usage. It d
 
 ## Implementation Benchmarks
 
-**Following Benchmarks contain performance metrics score which indicate better performance when the value is HIGHER. Score is calculated as standard deviation of the metric values and scaled to range 1-(0.1-1.0) relative to other languages**
-
-
-- **`cpu-clock`**: This event measures the total amount of time that the program spent executing on the CPU.
-- **`task-clock`**: This event measures the total amount of time that the program spent executing on the CPU, including time spent executing in the kernel on behalf of the program.
-- **`cache-misses`**: This event measures the number of times that the program accessed memory that was not present in the cache. The cache is a high-speed memory that stores frequently accessed data, and a cache miss occurs when the program has to access main memory instead.
-- **`branch-misses`**: This event measures the number of times that the program predicted the outcome of a branch instruction incorrectly and had to perform an extra jump to the correct location in the code.
-- **`context-switches`**: This event measures the number of times that the program was suspended and another program was scheduled to run on the CPU.
-- **`stability`**: Benchmarks are executed n times (e.g. 100). The Stablity reports total variance of these results and high score indicates that application was more stable compared to other languages.
-- **`stability`**: Benchmarks are executed n times (e.g. 100). The Stablity reports total variance of these results and high score indicates that application was more stable compared to other languages.
-- **`cpu-cycles`**: This counts the number of CPU cycles executed by the program.
-- **`instructions`**: This counts the number of instructions executed by the program.
-
-| | |
-| --- | --- |
-| ***Figure 1.** Performing minimal check to verify is external file containing Cryptdatum header* | ***Figure 2.** Performing full check to verify is external file containing valid Cryptdatum header* |
-| ![Verify valid header](docs/bench-file-has-header.svg) | ![Verify valid header](docs/bench-file-has-valid-header.svg) |
-| ***Figure 3.** Performing full check to verify is external file containing invalid Cryptdatum header* | ***Figure 4.** Print basic file info* |
-| ![Verify invalid header](docs/bench-file-has-invalid-header.svg) | ![File Info](docs/bench-file-info.svg) |
+*TBD*

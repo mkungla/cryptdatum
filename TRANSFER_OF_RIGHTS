@@ -1,0 +1,51 @@
+-----BEGIN PGP SIGNED MESSAGE-----
+Hash: SHA512
+
+TRANSFER OF RIGHTS AND PROJECT OWNERSHIP
+
+I, Marko Kungla, the original author and creator of the open-source project
+named Cryptdatum, hereby confirm my intention to transfer the ownership and
+rights of this project from my personal GitHub account (github.com/mkungla) to
+the organization known as "Happy SDK" (github.com/happy-sdk).
+
+This transfer is made under the following terms and conditions:
+
+1. TRANSFER OF OWNERSHIP: I declare that I have full rights and authority to
+   transfer the project to Happy SDK. I confirm that this project is my original
+   work and that I have not incorporated code or contributions from others that
+   would restrict this transfer.
+
+2. LICENSING: I intend for this project to be governed by the Apache License,
+   Version 2.0, which is specified in the project's LICENSE file.
+
+3. PUBLIC DOMAIN: I agree to release the codebase and associated project assets
+   to the public domain, allowing Happy SDK to continue the development and
+   distribution of this project.
+
+4. FUTURE MAINTENANCE: Happy SDK and its members have my authorization to
+   maintain, modify, and distribute the project as they see fit.
+
+5. DIGITAL SIGNATURE: I sign this document with my PGP key to confirm the
+   authenticity of this transfer.
+   - Date: December 16, 2023
+
+CONTACT INFORMATION
+
+For any inquiries or further clarification regarding this transfer, please
+contact me at:
+
+- - - Name: Marko Kungla
+- - - Email: marko.kungla@gmail.com
+- - - GitHub: github.com/mkungla
+
+By signing this document, I acknowledge and consent to the transfer of the
+project's ownership to Happy SDK. I understand that this project will be made
+publicly available and may be used and distributed under the terms of the Apache
+License, Version 2.0.
+-----BEGIN PGP SIGNATURE-----
+
+iHUEARYKAB0WIQQWRCqiuO8eES3LFOvkRf3aShfd2wUCZX2V6gAKCRDkRf3aShfd
+2y90AP9H2O6O6H39YWXpMNSXZwlH8A0hya0B63XAWfBiIOCbHQD+Ik8v1GwjOJCI
+EHeuhQFeYA02sqzB86240TY4JAjRtQg=
+=ws+4
+-----END PGP SIGNATURE-----
